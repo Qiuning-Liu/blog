@@ -14,8 +14,8 @@ enableEmoji = true
 #googleAnalytics = "UA-123-45"
 
 
-[permalinks]
-    post = "/:year/:month/:day/:slug/"
+#[permalinks]
+ #   post = "/:year/:month/:day/:slug/"
 [menu]
 
   [[menu.main]]
