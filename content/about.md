@@ -9,9 +9,9 @@ title: About
 
 喜欢好看的图表、漂亮的模型、整洁的数据结构、格式清晰的code
 
-本命是R语言，近期的墙头是python。会那些个SPSS、Mplus等毕业论文必备软件（idol届的本命是G-dragon，墙头是BTS）
+本命是R语言，近期的墙头是python。会那些个SPSS、Mplus等毕业论文必备软件（idol届的本命是<span class="label label-warning">G-dragon</span>，墙头是<span class="label label-warning">BTS</span>）
 
-最爱Rmarkdown，用它出过测评报告、数据分析报告（封装为一个数据产品），写过产品使用手册、说明文档等等，它也带我打开了html、css的大门
+最爱<span class="label label-success">Rmarkdown</span>，用它出过测评报告、数据分析报告（封装为一个数据产品），写过产品使用手册、说明文档等等，它也带我打开了html、css的大门
 
 18年开发了一个公司内部使用的包——<span class="label label-success">RDDQ</span>
 
