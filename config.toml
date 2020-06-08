@@ -61,7 +61,7 @@ enableEmoji = true
     MathJaxVersion = "2.7.5"
 
     [params.logo]
-    url = "logo.png"
+    url = "images/logo.jpg"
     width = 50
     height = 50
     alt = "Logo"
