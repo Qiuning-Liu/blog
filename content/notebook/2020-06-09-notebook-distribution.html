@@ -1,0 +1,308 @@
+---
+title: notebook-distribution
+author: Qiuning
+date: '2020-06-09'
+slug: notebook-distribution
+categories:
+  - stat
+tags:
+  - distribution
+---
+
+
+
+<div id="uniform-the-uniform-distribution" class="section level2">
+<h2>Uniform: The Uniform Distribution</h2>
+<pre class="r"><code>&gt; ## 模拟服从均匀分布的数据
+&gt; dat &lt;- runif(100, min = 0, max = 2)
+&gt; hist(dat)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<pre class="r"><code>&gt; ## 累积分布函数，某数值x对应的累积分布概率，当lower.tail=T时，即P{X&lt;=x}
+&gt; pdat &lt;- punif(dat, min = 0, max = 5, lower.tail = TRUE)
+&gt; hist(pdat)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-2-2.png" width="672" /></p>
+<pre class="r"><code>&gt; ## qunif为punif的逆运算（反函数），即通过P{X&lt;=x}获取其x
+&gt; summary(qunif(pdat, min = 0, max = 1) - dat)
+~#     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+~# -1.59535 -1.14115 -0.89102 -0.81390 -0.46883 -0.01041
+&gt; ## 如果我们换个分布，分位值将会变动
+&gt; summary(qunif(pdat, min = 0, max = 2) - dat)
+~#      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+~# -1.196515 -0.855861 -0.668264 -0.610422 -0.351625 -0.007807
+&gt; 
+&gt; ## dunif为概率密度函数，返回给定x值的概率值 均匀分布的p是固定的=
+&gt; ## 1/(max-min)，因为无论抽取多少个数值，对于每个数值来说，他被抽取的概率只和最大值和最小值有关。
+&gt; dunif(c(1, 1, 1.5), min = 0, max = 2)
+~# [1] 0.5 0.5 0.5
+&gt; dunif(c(1, 2, 3), min = 0, max = 3)
+~# [1] 0.3333333 0.3333333 0.3333333
+&gt; 
+&gt; dunif(2, min = 0, max = 2)
+~# [1] 0.5
+&gt; dunif(2, min = 1, max = 2)
+~# [1] 1</code></pre>
+</div>
+<div id="normal-the-normal-distribution" class="section level2">
+<h2>Normal: The Normal Distribution</h2>
+<pre class="r"><code>&gt; ## 生成标准正态分布
+&gt; dat &lt;- rnorm(n = 1000, mean = 0, sd = 1)
+&gt; hist(dat)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<pre class="r"><code>&gt; ## 生成1000个连续数值
+&gt; x &lt;- seq(-6, 6, length.out = 1000)
+&gt; ## 这1000个数值在标准正态分布中的概率P值，d为density，为x出现的概率值
+&gt; y &lt;- dnorm(x, 0, 1)
+&gt; ## 可以看到0是概率最高的值
+&gt; plot(x, y, type = &quot;l&quot;)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-3-2.png" width="672" /></p>
+<pre class="r"><code>&gt; 
+&gt; ## pnorm,求取某数值x对应的累积分布概率值，当lower.tail=T时，即P{X&lt;=x}
+&gt; pnorm(0, 0, 1, lower.tail = TRUE)
+~# [1] 0.5
+&gt; pnorm(1, 0, 1, lower.tail = TRUE)
+~# [1] 0.8413447
+&gt; pnorm(2, 0, 1, lower.tail = TRUE)
+~# [1] 0.9772499
+&gt; pnorm(3, 0, 1, lower.tail = TRUE)
+~# [1] 0.9986501
+&gt; 
+&gt; ## 一般统计检验中针对某Z值进行的双尾检验，需将lower.tail=F，即P{X&gt;=x}
+&gt; ## 当Z值为1.96时，对应的P值为：
+&gt; pnorm(1.96, 0, 1, lower.tail = FALSE) * 2
+~# [1] 0.04999579
+&gt; 
+&gt; ## qnorm为pnorm的逆运算，即通过P值获得在某正态分布中的x
+&gt; qnorm(0.975, mean = 0, sd = 1, lower.tail = TRUE)
+~# [1] 1.959964
+&gt; qnorm(0.975, mean = 0, sd = 1, lower.tail = FALSE)
+~# [1] -1.959964</code></pre>
+<p>dnorm概率密度函数
+概率密度函数f(x)：给出了变量落在某值xi邻域内（或者某个区间内）的概率变化快慢，概率密度函数的值不是概率，而是概率的变化率，概率密度函数下面的面积才是概率。
+无法求取正态分布中某个点的概率，因为正态分布是连续型随机变量，在某点的概率取值为0。
+但我们可以求一个非常小的区间内的概率来代替。</p>
+<pre class="r"><code>&gt; nodes &lt;- seq(-3, 3, 0.1)
+&gt; dd &lt;- c()
+&gt; for (i in 1:61) {
++     dd[i] &lt;- pnorm(nodes[i]) - pnorm(nodes[i] - 0.1)
++ }
+&gt; sum(dd)
+~# [1] 0.9976825
+&gt; 
+&gt; plot(x = nodes, y = dd)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>&gt; dnorm(0) == 1/sqrt(2 * pi)
+~# [1] TRUE
+&gt; dnorm(1) == exp(-1/2)/sqrt(2 * pi)
+~# [1] TRUE
+&gt; dnorm(1) == 1/sqrt(2 * pi * exp(1))
+~# [1] TRUE</code></pre>
+<div id="按某特定分布从群体中抽取样本数据" class="section level3">
+<h3>按某特定分布从群体中抽取样本数据</h3>
+<pre class="r"><code>&gt; ## 当我们需要从1w条数据中，按概率抽取某样本时，比如抽取一个偏态分布
+&gt; ## 首先生成一组连续值,这组数可为任意值
+&gt; x &lt;- seq(0, 3, length.out = 10000)
+&gt; # 按某固定分布形态取在分布形态下，x中每个数值对应的密度概率值 yy &lt;- sn::dsn(x,
+&gt; # xi=1, omega=1, alpha=-3)
+&gt; yy &lt;- dnorm(x, 1.5, 1)  #也可以转为正态分布
+&gt; # 将概率传入sample的prob进行抽样，这样就是从X中按yy分布，抽取的3000个样本
+&gt; yx &lt;- sample(x, 3000, prob = yy)
+&gt; fn &lt;- ecdf(yx)
+&gt; # knots(fn)
+&gt; plot.ecdf(yx)  # ecdf</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>&gt; plot(x = yx, y = pnorm(yx, 1.5, 1))  #ecdf</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-6-2.png" width="672" /></p>
+<pre class="r"><code>&gt; hist(yx)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-6-3.png" width="672" /></p>
+</div>
+<div id="正态性检验" class="section level3">
+<h3>正态性检验</h3>
+<pre class="r"><code>&gt; ## Shapiro-Wilk normality test
+&gt; x &lt;- rnorm(1000)
+&gt; shapiro.test(x)
+~# 
+~#  Shapiro-Wilk normality test
+~# 
+~# data:  x
+~# W = 0.99779, p-value = 0.2056
+&gt; 
+&gt; x &lt;- sn::rsn(1000, alpha = -7)
+&gt; shapiro.test(x)
+~# 
+~#  Shapiro-Wilk normality test
+~# 
+~# data:  x
+~# W = 0.94706, p-value &lt; 2.2e-16
+&gt; 
+&gt; ## w值越接近1，p值大于0.05说明越接近正态分布
+&gt; 
+&gt; ## 偏度与峰度 偏态:数据分布的不对称性，称为偏态
+&gt; ## 偏度系数是描述分布偏离对称性程度的一个特征数。当分布左右对称时，偏度系数为0。当偏度系数大于0时，即重尾在右侧时，该分布为右偏。当偏度系数小于0时，即重尾在左侧时，该分布左偏。
+&gt; 
+&gt; 
+&gt; # 峰态：数据分布的平峰或尖峰程度，称为峰态
+&gt; # 正态分布的峰度为3。以一般而言，正态分布为参照，峰度可以描述分布形态的陡缓程度，若bk&lt;3，则称分布具有不足的峰度，若bk&gt;3，则称分布具有过度的峰度。若知道分布有可能在峰度上偏离正态分布时，可用峰度来检验分布的正态性。
+&gt; skew &lt;- sum((x - mean(x))^3/sd(x)^3)/length(x)
+&gt; kurt &lt;- sum((x - mean(x))^4/sd(x)^4)/length(x)
+&gt; 
+&gt; e1071::skewness(x)
+~# [1] -0.8904796</code></pre>
+<pre class="r"><code>&gt; ## One-sample Kolmogorov-Smirnov test
+&gt; ## 检验单一样本是不是服从某一预先假设的特定分布的方法。以样本数据的累计频数分布与特定理论分布比较，若两者间的差距很小，则推论该样本取自某特定分布族。
+&gt; ## 该检验原假设为H0:数据集符合正态分布，H1:样本所来自的总体分布不符合正态分布。令F0(x)表示预先假设的理论分布，Fn(x)表示随机样本的累计概率(频率)函数.
+&gt; 
+&gt; # 统计量D为: D=max|F0(x) - Fn(x)|
+&gt; 
+&gt; # D值越小，越接近0，表示样本数据越接近正态分布
+&gt; # p值，如果p-value小于显著性水平α(0.05)，则拒绝H0
+&gt; ks.test(x, &quot;pnorm&quot;)
+~# 
+~#  One-sample Kolmogorov-Smirnov test
+~# 
+~# data:  x
+~# D = 0.46169, p-value &lt; 2.2e-16
+~# alternative hypothesis: two-sided
+&gt; 
+&gt; x &lt;- rnorm(50)
+&gt; y &lt;- runif(30)
+&gt; # Do x and y come from the same distribution?
+&gt; ks.test(x, y)
+~# 
+~#  Two-sample Kolmogorov-Smirnov test
+~# 
+~# data:  x and y
+~# D = 0.64, p-value = 9.731e-08
+~# alternative hypothesis: two-sided</code></pre>
+<pre class="r"><code>&gt; # test if x is stochastically larger than x2
+&gt; x2 &lt;- rnorm(50, -1)
+&gt; plot(ecdf(x), xlim = range(c(x, x2)))  # x的累积分布函数曲线
+&gt; plot(ecdf(x2), add = TRUE, lty = &quot;dashed&quot;)  # x2的累积分布函数曲线</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<pre class="r"><code>&gt; 
+&gt; t.test(x, x2, alternative = &quot;g&quot;)
+~# 
+~#  Welch Two Sample t-test
+~# 
+~# data:  x and x2
+~# t = 2.6963, df = 97.745, p-value = 0.004129
+~# alternative hypothesis: true difference in means is greater than 0
+~# 95 percent confidence interval:
+~#  0.2099949       Inf
+~# sample estimates:
+~#  mean of x  mean of y 
+~# -0.2765594 -0.8232477
+&gt; wilcox.test(x, x2, alternative = &quot;g&quot;)
+~# 
+~#  Wilcoxon rank sum test with continuity correction
+~# 
+~# data:  x and x2
+~# W = 1628, p-value = 0.004628
+~# alternative hypothesis: true location shift is greater than 0
+&gt; ks.test(x, x2, alternative = &quot;l&quot;)  # 原假设x的累积分布函数在x2之下
+~# 
+~#  Two-sample Kolmogorov-Smirnov test
+~# 
+~# data:  x and x2
+~# D^- = 0.3, p-value = 0.01111
+~# alternative hypothesis: the CDF of x lies below that of y</code></pre>
+</div>
+</div>
+<div id="the-student-t-distribution" class="section level2">
+<h2>The Student t Distribution</h2>
+<pre class="r"><code>&gt; ## 生成t分布 rt(n,df,)</code></pre>
+</div>
+<div id="关于ecdf经验累积分布函数" class="section level2">
+<h2>关于ecdf，经验累积分布函数</h2>
+<pre class="r"><code>&gt; x &lt;- rnorm(12)
+&gt; Fn &lt;- ecdf(x)
+&gt; Fn(x)  # 数值对应的累积概率值
+~#  [1] 0.16666667 0.25000000 0.33333333 1.00000000 0.58333333 0.66666667
+~#  [7] 0.41666667 0.50000000 0.91666667 0.08333333 0.75000000 0.83333333</code></pre>
+<pre class="r"><code>&gt; tt &lt;- seq(-2, 2, by = 0.1)
+&gt; 12 * Fn(tt)  # Fn is a &#39;simple&#39; function {with values k/12}
+~#  [1]  0  0  0  0  0  0  0  0  1  1  1  2  2  2  2  2  2  2  2  2  2  2  3  4  4
+~# [26]  5  5  5  7  8  8  8  9  9  9  9  9 10 10 11 11
+&gt; summary(Fn)
+~# Empirical CDF:     12 unique values with summary
+~#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+~# -1.2937  0.2372  0.7277  0.7300  1.2633  3.1077
+&gt; knots(Fn)
+~#  [1] -1.2937297 -0.9639827  0.1952185  0.2512402  0.4960068  0.7256007
+~#  [7]  0.7298685  0.8587173  1.1338236  1.6519073  1.8671596  3.1076730
+&gt; x
+~#  [1] -0.9639827  0.1952185  0.2512402  3.1076730  0.7298685  0.8587173
+~#  [7]  0.4960068  0.7256007  1.8671596 -1.2937297  1.1338236  1.6519073
+&gt; 
+&gt; y &lt;- round(rnorm(12), 1)
+&gt; y[3] &lt;- y[1]
+&gt; Fn12 &lt;- ecdf(y)
+&gt; Fn12
+~# Empirical CDF 
+~# Call: ecdf(y)
+~#  x[1:9] =   -1.6,   -1.1,   -0.8,  ...,    2.2,    2.3
+&gt; knots(Fn12)  # unique values (always less than 12!)
+~# [1] -1.6 -1.1 -0.8 -0.4  0.0  0.2  0.4  2.2  2.3
+&gt; summary(Fn12)
+~# Empirical CDF:     9 unique values with summary
+~#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+~# -1.6000 -0.8000  0.0000  0.1333  0.4000  2.3000
+&gt; summary.stepfun(Fn12)
+~# Step function with continuity &#39;f&#39;= 0 ,  9 knots with summary
+~#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+~# -1.6000 -0.8000  0.0000  0.1333  0.4000  2.3000 
+~# 
+~# and  10 plateau levels (y) with summary
+~#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+~#  0.0000  0.2292  0.5417  0.5167  0.7917  1.0000</code></pre>
+<pre class="r"><code>&gt; require(graphics)
+&gt; y &lt;- round(rnorm(12), 1)
+&gt; y[3] &lt;- y[1]
+&gt; Fn12 &lt;- ecdf(y)
+&gt; Fn12
+~# Empirical CDF 
+~# Call: ecdf(y)
+~#  x[1:11] =   -2.1,   -1.4,   -0.6,  ...,    0.9,    1.6
+&gt; op &lt;- par(mfrow = c(3, 1), mgp = c(1.5, 0.8, 0), mar = 0.1 + c(3, 3, 2, 1))
+&gt; 
+&gt; F10 &lt;- ecdf(rnorm(10))
+&gt; summary(F10)
+~# Empirical CDF:     10 unique values with summary
+~#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+~# -1.9601 -1.1213 -0.2193 -0.3573  0.2128  1.7334
+&gt; 
+&gt; plot(F10)
+&gt; plot(F10, verticals = TRUE, do.points = FALSE)
+&gt; 
+&gt; plot(Fn12, lwd = 2)
+&gt; mtext(&quot;lwd = 2&quot;, adj = 1)
+&gt; xx &lt;- unique(sort(c(seq(-3, 2, length = 201), knots(Fn12))))
+&gt; lines(xx, Fn12(xx), col = &quot;blue&quot;)
+&gt; abline(v = knots(Fn12), lty = 2, col = &quot;gray70&quot;)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<pre class="r"><code>&gt; 
+&gt; plot(xx, Fn12(xx), type = &quot;o&quot;, cex = 0.1)  #- plot.default {ugly}
+&gt; plot(Fn12, col.hor = &quot;red&quot;, add = TRUE)  #- plot method
+&gt; abline(v = knots(Fn12), lty = 2, col = &quot;gray70&quot;)
+&gt; ## luxury plot
+&gt; plot(Fn12, verticals = TRUE, col.points = &quot;blue&quot;, col.hor = &quot;red&quot;, col.vert = &quot;bisque&quot;)
+&gt; 
+&gt; ##-- this works too (automatic call to  ecdf(.)):
+&gt; plot.ecdf(rnorm(24))
+&gt; title(&quot;via  simple  plot.ecdf(x)&quot;, adj = 1)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-13-2.png" width="672" /></p>
+<pre class="r"><code>&gt; 
+&gt; par(op)</code></pre>
+<div id="curve-画图指定函数和x数据区间" class="section level3">
+<h3>curve 画图，指定函数和x数据区间</h3>
+<pre class="r"><code>&gt; curve(sin, -2 * pi, 2 * pi, xname = &quot;t&quot;)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<pre class="r"><code>&gt; curve(x^3 - 3 * x, -2, 2)
+&gt; curve(x^2 - 2, add = TRUE, col = &quot;violet&quot;)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<pre class="r"><code>&gt; chippy &lt;- function(x) sin(cos(x) * exp(-x/2))
+&gt; curve(chippy, -8, 7, n = 2001)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+<pre class="r"><code>&gt; plot(chippy, -8, -5)</code></pre>
+<p><img src="/notebook/2020-06-09-notebook-distribution_files/figure-html/unnamed-chunk-16-2.png" width="672" /></p>
+</div>
+</div>

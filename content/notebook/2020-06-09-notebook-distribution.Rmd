@@ -1,0 +1,244 @@
+---
+title: notebook-distribution
+author: Qiuning
+date: '2020-06-09'
+slug: notebook-distribution
+categories:
+  - stat
+tags:
+  - distribution
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(collapse = T, warning = FALSE, message = FALSE, tidy = T,comment='~#',prompt=TRUE)
+```
+
+## Uniform: The Uniform Distribution
+
+
+```{r}
+## 模拟服从均匀分布的数据
+dat <- runif(100,min = 0,max=2)
+hist(dat)
+## 累积分布函数，某数值x对应的累积分布概率，当lower.tail=T时，即P{X<=x}
+pdat <- punif(dat, min=0,max=5,lower.tail = TRUE)
+hist(pdat)
+## qunif为punif的逆运算（反函数），即通过P{X<=x}获取其x
+summary(qunif(pdat,min=0,max = 1)-dat)
+## 如果我们换个分布，分位值将会变动
+summary(qunif(pdat,min=0,max = 2)-dat)
+
+## dunif为概率密度函数，返回给定x值的概率值
+## 均匀分布的p是固定的= 1/(max-min)，因为无论抽取多少个数值，对于每个数值来说，他被抽取的概率只和最大值和最小值有关。
+dunif(c(1,1,1.5),min=0,max = 2)
+dunif(c(1,2,3),min=0,max = 3)
+
+dunif(2,min=0,max = 2)
+dunif(2,min=1,max = 2)
+
+```
+
+
+## Normal: The Normal Distribution
+```{r}
+## 生成标准正态分布
+dat <- rnorm(n=1000,mean = 0,sd=1)
+hist(dat)
+## 生成1000个连续数值
+x <- seq(-6,6,length.out=1000)
+## 这1000个数值在标准正态分布中的概率P值，d为density，为x出现的概率值
+y <- dnorm(x,0,1)
+## 可以看到0是概率最高的值
+plot(x,y,type = 'l')
+
+## pnorm,求取某数值x对应的累积分布概率值，当lower.tail=T时，即P{X<=x}
+pnorm(0,0,1,lower.tail = TRUE)
+pnorm(1,0,1,lower.tail = TRUE)
+pnorm(2,0,1,lower.tail = TRUE)
+pnorm(3,0,1,lower.tail = TRUE)
+
+## 一般统计检验中针对某Z值进行的双尾检验，需将lower.tail=F，即P{X>=x}
+## 当Z值为1.96时，对应的P值为：
+pnorm(1.96,0,1,lower.tail = FALSE)*2
+
+## qnorm为pnorm的逆运算，即通过P值获得在某正态分布中的x
+qnorm(0.975,mean=0,sd=1,lower.tail = TRUE)
+qnorm(0.975,mean=0,sd=1,lower.tail = FALSE)
+
+```
+
+dnorm概率密度函数
+概率密度函数f(x)：给出了变量落在某值xi邻域内（或者某个区间内）的概率变化快慢，概率密度函数的值不是概率，而是概率的变化率，概率密度函数下面的面积才是概率。
+无法求取正态分布中某个点的概率，因为正态分布是连续型随机变量，在某点的概率取值为0。
+但我们可以求一个非常小的区间内的概率来代替。
+
+```{r}
+nodes <- seq(-3,3,0.1)
+dd <- c()
+for (i in 1:61) {
+ dd[i] <-  pnorm(nodes[i])-pnorm(nodes[i]-0.1)
+}
+sum(dd)
+
+plot(x=nodes,y=dd)
+```
+
+
+```{r}
+dnorm(0) == 1/sqrt(2*pi)
+dnorm(1) == exp(-1/2)/sqrt(2*pi)
+dnorm(1) == 1/sqrt(2*pi*exp(1))
+
+```
+### 按某特定分布从群体中抽取样本数据
+
+```{r}
+## 当我们需要从1w条数据中，按概率抽取某样本时，比如抽取一个偏态分布
+# 首先生成一组连续值,这组数可为任意值
+x <- seq(0,3,length.out=10000)
+# 按某固定分布形态取在分布形态下，x中每个数值对应的密度概率值
+# yy <- sn::dsn(x, xi=1, omega=1, alpha=-3)
+yy <- dnorm(x,1.5,1) #也可以转为正态分布
+# 将概率传入sample的prob进行抽样，这样就是从X中按yy分布，抽取的3000个样本
+yx <- sample(x,3000,prob = yy) 
+fn <- ecdf(yx)
+# knots(fn)
+plot.ecdf(yx) # ecdf
+plot(x=yx,y=pnorm(yx,1.5,1)) #ecdf
+hist(yx)
+```
+
+### 正态性检验
+```{r}
+## Shapiro-Wilk normality test
+x <-rnorm(1000)
+shapiro.test(x)
+
+x <- sn::rsn(1000,alpha=-7)
+shapiro.test(x)
+
+## w值越接近1，p值大于0.05说明越接近正态分布
+
+## 偏度与峰度
+# 偏态:数据分布的不对称性，称为偏态
+# 偏度系数是描述分布偏离对称性程度的一个特征数。当分布左右对称时，偏度系数为0。当偏度系数大于0时，即重尾在右侧时，该分布为右偏。当偏度系数小于0时，即重尾在左侧时，该分布左偏。
+
+
+# 峰态：数据分布的平峰或尖峰程度，称为峰态
+# 正态分布的峰度为3。以一般而言，正态分布为参照，峰度可以描述分布形态的陡缓程度，若bk<3，则称分布具有不足的峰度，若bk>3，则称分布具有过度的峰度。若知道分布有可能在峰度上偏离正态分布时，可用峰度来检验分布的正态性。
+skew<-sum((x-mean(x))^3/sd(x)^3)/length(x)
+kurt<-sum((x-mean(x))^4/sd(x)^4)/length(x)
+
+e1071::skewness(x) 
+```
+
+```{r}
+## One-sample Kolmogorov-Smirnov test
+# 检验单一样本是不是服从某一预先假设的特定分布的方法。以样本数据的累计频数分布与特定理论分布比较，若两者间的差距很小，则推论该样本取自某特定分布族。
+# 该检验原假设为H0:数据集符合正态分布，H1:样本所来自的总体分布不符合正态分布。令F0(x)表示预先假设的理论分布，Fn(x)表示随机样本的累计概率(频率)函数.
+
+# 统计量D为: D=max|F0(x) - Fn(x)|
+
+# D值越小，越接近0，表示样本数据越接近正态分布
+# p值，如果p-value小于显著性水平α(0.05)，则拒绝H0
+ks.test(x, "pnorm")
+
+x <- rnorm(50)
+y <- runif(30)
+# Do x and y come from the same distribution?
+ks.test(x, y)
+```
+
+```{r}
+# test if x is stochastically larger than x2
+x2 <- rnorm(50, -1)
+plot(ecdf(x), xlim = range(c(x, x2))) # x的累积分布函数曲线
+plot(ecdf(x2), add = TRUE, lty = "dashed") # x2的累积分布函数曲线
+
+t.test(x, x2, alternative = "g")
+wilcox.test(x, x2, alternative = "g")
+ks.test(x, x2, alternative = "l") # 原假设x的累积分布函数在x2之下
+
+```
+
+
+## The Student t Distribution
+
+```{r}
+## 生成t分布
+# rt(n,df,)
+```
+
+
+## 关于ecdf，经验累积分布函数
+```{r}
+x <- rnorm(12)
+Fn <- ecdf(x)
+Fn(x) # 数值对应的累积概率值
+```
+```{r}
+tt <- seq(-2, 2, by = 0.1)
+12 * Fn(tt) # Fn is a 'simple' function {with values k/12}
+summary(Fn)
+knots(Fn)
+x
+
+y <- round(rnorm(12), 1); y[3] <- y[1]
+Fn12 <- ecdf(y)
+Fn12
+knots(Fn12) # unique values (always less than 12!)
+summary(Fn12)
+summary.stepfun(Fn12)
+```
+
+
+```{r}
+require(graphics)
+y <- round(rnorm(12), 1); y[3] <- y[1]
+Fn12 <- ecdf(y)
+Fn12
+op <- par(mfrow = c(3, 1), mgp = c(1.5, 0.8, 0), mar =  .1+c(3,3,2,1))
+
+F10 <- ecdf(rnorm(10))
+summary(F10)
+
+plot(F10)
+plot(F10, verticals = TRUE, do.points = FALSE)
+
+plot(Fn12 , lwd = 2) ; mtext("lwd = 2", adj = 1)
+xx <- unique(sort(c(seq(-3, 2, length = 201), knots(Fn12))))
+lines(xx, Fn12(xx), col = "blue")
+abline(v = knots(Fn12), lty = 2, col = "gray70")
+
+plot(xx, Fn12(xx), type = "o", cex = .1)  #- plot.default {ugly}
+plot(Fn12, col.hor = "red", add =  TRUE)  #- plot method
+abline(v = knots(Fn12), lty = 2, col = "gray70")
+## luxury plot
+plot(Fn12, verticals = TRUE, col.points = "blue",
+     col.hor = "red", col.vert = "bisque")
+
+##-- this works too (automatic call to  ecdf(.)):
+plot.ecdf(rnorm(24))
+title("via  simple  plot.ecdf(x)", adj = 1)
+
+par(op)
+```
+
+### curve 画图，指定函数和x数据区间
+
+```{r}
+curve(sin, -2*pi, 2*pi, xname = "t")
+
+```
+
+```{r}
+curve(x^3 - 3*x, -2, 2)
+curve(x^2 - 2, add = TRUE, col = "violet")
+```
+
+```{r}
+chippy <- function(x) sin(cos(x)*exp(-x/2))
+curve(chippy, -8, 7, n = 2001)
+plot (chippy, -8, -5)
+```
+

@@ -1,12 +1,12 @@
 ---
-title: try
+title: notebook-echarts4r
 author: Qiuning
 date: '2020-06-08'
 slug: try
 categories:
-  - R
+  - R 
 tags:
-  - R Markdown
+  - R plot
 Description: ''
 DisableComments: no
 ---

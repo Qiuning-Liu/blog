@@ -27,7 +27,7 @@ enableEmoji = true
   [[menu.main]]
   name = "Blog"
   weight = 200
-  identifier = "posts"
+  identifier = "Blog"
   url = "/post/"
 
   [[menu.main]]
