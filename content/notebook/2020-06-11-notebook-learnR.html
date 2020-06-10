@@ -1,0 +1,304 @@
+---
+title: notebook-learnR
+author: 秋宁
+date: '2020-06-11'
+slug: notebook-learnR
+categories:
+  - R
+tags: []
+---
+
+
+
+<p>针对字符向量的数据编码格式查看与转换</p>
+<pre class="r"><code>&gt; 
+&gt; x &lt;- enc2utf8(as.character(data$性别))
+&gt; Encoding(x)
+~# [1] &quot;UTF-8&quot; &quot;UTF-8&quot; &quot;UTF-8&quot; &quot;UTF-8&quot; &quot;UTF-8&quot;
+&gt; Encoding(x) &lt;- &quot;utf-8&quot;
+&gt; rm(x)</code></pre>
+<pre class="r"><code>&gt; # eapply(e,FUN = mean)
+&gt; exists(&quot;data&quot;)  #判断某R object是否存在
+~# [1] TRUE</code></pre>
+<pre class="r"><code>&gt; ## 获得所有变量彼此之间的组合
+&gt; expand.grid(height = seq(1, 5, 1), weight = cumsum(2:4), sex = c(&quot;Male&quot;, &quot;Female&quot;))
+~#    height weight    sex
+~# 1       1      2   Male
+~# 2       2      2   Male
+~# 3       3      2   Male
+~# 4       4      2   Male
+~# 5       5      2   Male
+~# 6       1      5   Male
+~# 7       2      5   Male
+~# 8       3      5   Male
+~# 9       4      5   Male
+~# 10      5      5   Male
+~# 11      1      9   Male
+~# 12      2      9   Male
+~# 13      3      9   Male
+~# 14      4      9   Male
+~# 15      5      9   Male
+~# 16      1      2 Female
+~# 17      2      2 Female
+~# 18      3      2 Female
+~# 19      4      2 Female
+~# 20      5      2 Female
+~# 21      1      5 Female
+~# 22      2      5 Female
+~# 23      3      5 Female
+~# 24      4      5 Female
+~# 25      5      5 Female
+~# 26      1      9 Female
+~# 27      2      9 Female
+~# 28      3      9 Female
+~# 29      4      9 Female
+~# 30      5      9 Female</code></pre>
+<pre class="r"><code>&gt; ## 下限截断赋值
+&gt; NA
+~# [1] NA
+&gt; 
+&gt; ## 上限截断赋值
+&gt; NA
+~# [1] NA</code></pre>
+<pre class="r"><code>&gt; ## 交互式选择文件 file.choose(new = FALSE)
+&gt; </code></pre>
+<pre class="r"><code>&gt; 
+&gt; Map(mean, list1)
+~# $数据导向
+~# [1] 7
+~# 
+~# $开放创新
+~# [1] 6.6
+~# 
+~# $沉着务实
+~# [1] 8
+&gt; ## 
+&gt; mapply(mean, list1)
+~# 数据导向 开放创新 沉着务实 
+~#      7.0      6.6      8.0</code></pre>
+<pre class="r"><code>&gt; Reduce(&quot;+&quot;, c(1, 2, 4))
+~# [1] 7
+&gt; 
+&gt; cumsum(c(1, 2, 4))
+~# [1] 1 3 7
+&gt; 
+&gt; Reduce(mean, c(1, 2, 3, 4, 5), accumulate = T)
+~# [1] 1 1 1 1 1</code></pre>
+<pre class="r"><code>&gt; # Filter(Negate(is.function), sapply(ls(baseenv()), get, baseenv()))
+&gt; 
+&gt; # Filter(is.function, sapply(ls(baseenv()), get, baseenv()))
+&gt; 
+&gt; # Negate 使函数的判断结果相反
+&gt; not.numeric &lt;- Negate(is.numeric)
+&gt; not.numeric(c(1, 2, 3))
+~# [1] FALSE
+&gt; is.numeric(c(1, 2, 3))
+~# [1] TRUE</code></pre>
+<pre class="r"><code>&gt; get(&quot;data&quot;)
+~#   性别       学历   年龄分组 绩效 数据导向 开放创新 沉着务实 沉着务实z
+~# 1   男       本科 20岁及以下    A        5        4        9     -0.80
+~# 2   男 硕士研究生    20~30岁    A        6        5        6      1.60
+~# 3   女 博士研究生   30岁以上    B        7        6        6      1.00
+~# 4   女       本科 20岁及以下    C        8        8        9      0.65
+~# 5   女       本科 20岁及以下    C        9       10       10     -1.20
+~#   开放创新z
+~# 1       0.4
+~# 2       0.5
+~# 3      -0.6
+~# 4       1.8
+~# 5       1.2</code></pre>
+<pre class="r"><code>&gt; length(list1)
+~# [1] 3
+&gt; 
+&gt; # 计算Lengths of List or Vector Elements
+&gt; lengths(list1)
+~# 数据导向 开放创新 沉着务实 
+~#        5        5        5</code></pre>
+<pre class="r"><code>&gt; # match returns a vector of the positions of (first) matches of its first
+&gt; # argument in its second.
+&gt; 
+&gt; # %in% is currently defined as &#39;%in%&#39; &lt;- function(x, table) match(x, table,
+&gt; # nomatch = 0) &gt; 0
+&gt; 
+&gt; match(&quot;女&quot;, data$性别) &gt; 0
+~# [1] TRUE
+&gt; 
+&gt; &quot;女&quot; %in% data$性别
+~# [1] TRUE</code></pre>
+<p>pmatch 相关</p>
+<pre class="r"><code>&gt; pmatch(&quot;&quot;, &quot;&quot;)  # returns NA
+~# [1] NA
+&gt; pmatch(&quot;m&quot;, c(&quot;mean&quot;, &quot;median&quot;, &quot;mode&quot;))  # returns NA
+~# [1] NA
+&gt; pmatch(&quot;med&quot;, c(&quot;mean&quot;, &quot;median&quot;, &quot;mode&quot;))  # returns 2
+~# [1] 2
+&gt; 
+&gt; pmatch(c(&quot;&quot;, &quot;ab&quot;, &quot;ab&quot;), c(&quot;abc&quot;, &quot;ab&quot;), dup = FALSE)  #被匹配的数据集中的元素仅可使用一次
+~# [1] NA  2  1
+&gt; pmatch(c(&quot;&quot;, &quot;ab&quot;, &quot;ab&quot;), c(&quot;abc&quot;, &quot;ab&quot;), dup = TRUE)  #被匹配的数据集中的元素可重复使用
+~# [1] NA  2  2
+&gt; ## compare
+&gt; charmatch(c(&quot;&quot;, &quot;ab&quot;, &quot;ab&quot;), c(&quot;abc&quot;, &quot;ab&quot;))
+~# [1] 0 2 2
+&gt; 
+&gt; pmatch(c(&quot;&quot;, &quot;ab&quot;, &quot;abc&quot;, &quot;ab&quot;), c(&quot;abc&quot;, &quot;ab&quot;), dup = T)  #被匹配的数据集中的元素可重复使用
+~# [1] NA  2  1  2
+&gt; pmatch(c(&quot;&quot;, &quot;ab&quot;, &quot;abc&quot;, &quot;ab&quot;), c(&quot;abc&quot;, &quot;ab&quot;), dup = F)  #被匹配的数据集中的元素仅可使用一次
+~# [1] NA  2  1 NA
+&gt; pmatch(c(&quot;&quot;, &quot;ab&quot;, &quot;abc&quot;, &quot;ab&quot;), c(&quot;abc&quot;, &quot;ab&quot;, &quot;ab&quot;), dup = F)  #被匹配的数据集中的元素仅可使用一次
+~# [1] NA  2  1  3</code></pre>
+<pre class="r"><code>&gt; margin.table(as.matrix(data[, 5:7]), margin = 1)  # by row
+~# [1] 18 17 19 25 29
+&gt; margin.table(as.matrix(data[, 5:7]), margin = 2)  # by col
+~# 数据导向 开放创新 沉着务实 
+~#       35       33       40
+&gt; 
+&gt; # This is really just apply(x, margin, sum) packaged up for newbies, except that
+&gt; # if margin has length zero you get sum(x).</code></pre>
+<pre class="r"><code>&gt; # 添加边界和
+&gt; addmargins(as.matrix(data[, 5:7]))
+~#     数据导向 开放创新 沉着务实 Sum
+~#            5        4        9  18
+~#            6        5        6  17
+~#            7        6        6  19
+~#            8        8        9  25
+~#            9       10       10  29
+~# Sum       35       33       40 108</code></pre>
+<pre class="r"><code>&gt; prop.table(as.matrix(data[, 5:7]), margin = 1)  # by row
+~#       数据导向  开放创新  沉着务实
+~# [1,] 0.2777778 0.2222222 0.5000000
+~# [2,] 0.3529412 0.2941176 0.3529412
+~# [3,] 0.3684211 0.3157895 0.3157895
+~# [4,] 0.3200000 0.3200000 0.3600000
+~# [5,] 0.3103448 0.3448276 0.3448276
+&gt; prop.table(as.matrix(data[, 5:7]), margin = 2)  # by col
+~#       数据导向  开放创新 沉着务实
+~# [1,] 0.1428571 0.1212121    0.225
+~# [2,] 0.1714286 0.1515152    0.150
+~# [3,] 0.2000000 0.1818182    0.150
+~# [4,] 0.2285714 0.2424242    0.225
+~# [5,] 0.2571429 0.3030303    0.250
+&gt; prop.table(as.matrix(data[, 5:7]), margin = NULL)  # by all
+~#        数据导向   开放创新   沉着务实
+~# [1,] 0.04629630 0.03703704 0.08333333
+~# [2,] 0.05555556 0.04629630 0.05555556
+~# [3,] 0.06481481 0.05555556 0.05555556
+~# [4,] 0.07407407 0.07407407 0.08333333
+~# [5,] 0.08333333 0.09259259 0.09259259</code></pre>
+<pre class="r"><code>&gt; make.unique(rep(&quot;T&quot;, 10), sep = &quot;_&quot;)
+~#  [1] &quot;T&quot;   &quot;T_1&quot; &quot;T_2&quot; &quot;T_3&quot; &quot;T_4&quot; &quot;T_5&quot; &quot;T_6&quot; &quot;T_7&quot; &quot;T_8&quot; &quot;T_9&quot;
+&gt; 
+&gt; # make.names()</code></pre>
+<pre class="r"><code>&gt; # Logic: Logical Operators
+&gt; 
+&gt; # ! x x &amp; y x &amp;&amp; y x | y x || y xor(x, y) isTRUE (x) isFALSE(x)
+&gt; </code></pre>
+<pre class="r"><code>&gt; seq_along(data$性别)
+~# [1] 1 2 3 4 5
+&gt; seq_len(20)
+~#  [1]  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
+&gt; seq.int(from = 1, to = 5, by = 0.8)
+~# [1] 1.0 1.8 2.6 3.4 4.2 5.0</code></pre>
+<pre class="r"><code>&gt; # .First &lt;- function() if(interactive()) x11()
+&gt; </code></pre>
+<pre class="r"><code>&gt; # 
+&gt; interaction(data$性别, data$学历)
+~# [1] 男.本科       男.硕士研究生 女.博士研究生 女.本科       女.本科      
+~# 6 Levels: 男.本科 女.本科 男.博士研究生 女.博士研究生 ... 女.硕士研究生
+&gt; # factor; : where f:g is similar to interaction(f, g, sep = &#39;:&#39;) when f and g are
+&gt; # factors.
+&gt; 
+&gt; data$性别:data$学历
+~# [1] 男:本科       男:硕士研究生 女:博士研究生 女:本科       女:本科      
+~# 6 Levels: 男:本科 男:博士研究生 男:硕士研究生 女:本科 ... 女:硕士研究生</code></pre>
+<pre class="r"><code>&gt; # 将output传出到文件 sink(file = &#39;xx.txt&#39;) i=c(1,2,3) i sink()
+&gt; </code></pre>
+<p>数组</p>
+<pre class="r"><code>&gt; # R中的数组可以有一个、两个或多个维度。它只是一个向量，其中存储了附加的属性，提供了维度(属性“dim”)和可选的维度名称(属性“dimnames”)。
+&gt; # 二维数组和矩阵是一样的。
+&gt; # 一维数组通常看起来像向量，但是某些函数处理的方式可能不同:str在最近的R版本中确实区分了它们。
+&gt; # “dim”属性是一个长度为1或多个的整数向量，包含非负值:这些值的乘积必须与数组的长度匹配。
+&gt; # “dimnames”属性是可选的:如果它是一个包含每个维度一个组件的列表，则要么为空，要么为该维度的“dim”属性的元素提供长度的字符向量。
+&gt; # 是多少。数组是一个基元函数。</code></pre>
+<div id="data-table" class="section level2">
+<h2>data table</h2>
+<pre class="r"><code>&gt; DT = data.table(x = rep(c(&quot;b&quot;, &quot;a&quot;, &quot;c&quot;), each = 3), v = c(1, 1, 1, 2, 2, 1, 1, 2, 
++     2), y = c(1, 3, 6), a = 1:9, b = 9:1)
+&gt; DT
+~#    x v y a b
+~# 1: b 1 1 1 9
+~# 2: b 1 3 2 8
+~# 3: b 1 6 3 7
+~# 4: a 2 1 4 6
+~# 5: a 2 3 5 5
+~# 6: a 1 6 6 4
+~# 7: c 1 1 7 3
+~# 8: c 2 3 8 2
+~# 9: c 2 6 9 1
+&gt; X = data.table(x = c(&quot;c&quot;, &quot;b&quot;), v = 8:7, foo = c(4, 2))
+&gt; X
+~#    x v foo
+~# 1: c 8   4
+~# 2: b 7   2
+&gt; 
+&gt; DT[.N]  # last row, only special symbol allowed in &#39;i&#39;
+~#    x v y a b
+~# 1: c 2 6 9 1
+&gt; DT[, .N]  # total number of rows in DT
+~# [1] 9
+&gt; DT[, .N, by = x]  # number of rows in each group
+~#    x N
+~# 1: b 3
+~# 2: a 3
+~# 3: c 3
+&gt; DT[, .SD, .SDcols = x:y]  # select columns &#39;x&#39; and &#39;y&#39;
+~#    x v y
+~# 1: b 1 1
+~# 2: b 1 3
+~# 3: b 1 6
+~# 4: a 2 1
+~# 5: a 2 3
+~# 6: a 1 6
+~# 7: c 1 1
+~# 8: c 2 3
+~# 9: c 2 6
+&gt; DT[, .SD[1]]  # first row of all columns
+~#    x v y a b
+~# 1: b 1 1 1 9
+&gt; DT[, .SD[1], by = x]  # first row of &#39;y&#39; and &#39;v&#39; for each group in &#39;x&#39;
+~#    x v y a b
+~# 1: b 1 1 1 9
+~# 2: a 2 1 4 6
+~# 3: c 1 1 7 3
+&gt; DT[, c(.N, lapply(.SD, sum)), by = x]  # get rows *and* sum columns &#39;v&#39; and &#39;y&#39; by group
+~#    x N v  y  a  b
+~# 1: b 3 3 10  6 24
+~# 2: a 3 5 10 15 15
+~# 3: c 3 5 10 24  6
+&gt; DT[, .I[1], by = x]  # row number in DT corresponding to each group
+~#    x V1
+~# 1: b  1
+~# 2: a  4
+~# 3: c  7
+&gt; DT[, .N, by = rleid(v)]  # get count of consecutive runs of &#39;v&#39;
+~#    rleid N
+~# 1:     1 3
+~# 2:     2 2
+~# 3:     3 2
+~# 4:     4 2
+&gt; DT[, c(.(y = max(y)), lapply(.SD, min)), by = rleid(v), .SDcols = v:b]  # compute &#39;j&#39; for each consecutive runs of &#39;v&#39;
+~#    rleid y v y a b
+~# 1:     1 6 1 1 1 7
+~# 2:     2 3 2 1 4 5
+~# 3:     3 6 1 1 6 3
+~# 4:     4 6 2 3 8 1
+&gt; DT[, `:=`(grp, .GRP), by = x]  # add a group counter
+&gt; X[, DT[.BY, y, on = &quot;x&quot;], by = x]  # join within each group
+~#    x V1
+~# 1: c  1
+~# 2: c  3
+~# 3: c  6
+~# 4: b  1
+~# 5: b  3
+~# 6: b  6</code></pre>
+</div>

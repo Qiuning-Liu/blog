@@ -1,0 +1,187 @@
+---
+title: notebook-IRT in R
+author: 秋宁
+date: '2020-06-11'
+slug: notebook-irt-in-r
+categories: []
+tags:
+  - IRT
+Description: ''
+Tags: []
+Categories: []
+DisableComments: no
+---
+```{r, include=FALSE}
+knitr::opts_chunk$set(collapse = T, warning = FALSE, message = FALSE, tidy = T,comment='~#',prompt=TRUE)
+```
+## 信息量
+
+编写绘制信息量图的函数：
+
+```{r}
+tif <- function(b, a, c) {
+J <- length(b)
+if (missing(c)) c <- rep(0, J)
+if (missing(a)) a <- rep(1, J)
+theta <- seq(-3, 3, 0.1)
+ii <- matrix(rep(0, length(theta)*J), nrow=length(theta))
+i <- rep(0, length(theta))
+for (j in 1:J) {
+Pstar <- 1 / (1 + exp(-a[j] * (theta - b[j])))
+P <- c[j] + (1 - c[j]) * Pstar
+ii[,j] <- a[j]**2 * P * (1.0 - P) * (Pstar / P)**2
+i <- i + ii[,j]
+}
+plot(theta, i, xlim=c(-3,3), ylim=c(0,10), type="l",
+xlab="Ability", ylab="Information",
+main="Test Information Function")
+}
+```
+
+
+```{r}
+tif(a=c(1,2,3),b=c(0.3,0.4,0.5))
+```
+
+其中三参数IRT的信息量计算方法如下：
+
+![](C:\Users\Qiuning\AppData\Roaming\Typora\typora-user-images\image-20200314160147341.png)
+
+1.测验信息量的一般水平取决于：
+
+* 题目数量
+
+* 题目的区分度均值
+
+* 以上两条适用于1参到3参三个模型
+
+2.信息量的形态取决于：
+
+* 题目难度参数在能力区间上的分布
+
+* 区分度参数的平均水平和其分布
+
+3.当题目难度参数在某个值附近分布的较为紧密时，测验信息量将集中在这个能力范围附近。信息量的极大值取决于题目的区分度参数。
+
+4.当题目难度参数分布的较为广泛时，测验信息量也会相比难度集中时平坦。
+
+5.当a<1时，信息量水平一版较低，a>1.7时，信息量水平较高。
+
+6.在三参数模型下，c参数越大，信息量水平在低能力水平越低。除此之外，c参数大将降低整体的信息量水平。
+
+7.很难获得一个几乎水平的信息量模型。要做到这一点,难度参数就必须分布要广，区分度参数需近似一个U型分布。且水平相对较低。
+
+## 测验标定/测验校准/Test Calibration
+
+对一份测验进行题目参数的标定以用于后续测试的工作即为测验标定。通常是将测验施测于一组被试中，被试对题目进行二分作答。然后对作答数据进行两阶段的参数估计：第一步假设能力参数已知估计题目参数，第二步利用估计的题目参数估计能力值，然后循环两步直到达到了收敛标准。但这其中需要制定能力估计的尺度标准。
+
+### 测验标定步骤：
+
+* 对于那些作答全为1分或全为0分的被试，我们是无法进行极大似然估计的。因此在进行标定之前，需将这些作答进行剔除。
+
+* 在Rasch模型中，原始分是theta的充分统计量，答对题目数量相同的被试会获得同样的能力估计值。因此，区分有相同原始分的不同被试没有那么重要。因此，我们所需要的不是使用单个试题的答案，而是每个原始分数上正确回答每个题目的考生人数。因此，在Rasch模型下，一个编辑过的数据集被用作测试校准程序的初始起点。
+
+* 为了得到一个方便的中点值，从每个项目的难度估计值中减去平均项目难度，使得重新调整后的平均项目难度值为零。由于项目难度与能力量表用同一个度量单位表示，所以能力量表的中点和测量单位现在已经确定。由于这是在2阶段之间完成的，所以在第2阶段中估计的能力将在第1阶段中获得的重新标度的项目参数估计中定义的度量中。
+
+* 对应原始分数的能力值通过第二阶段被估计出来。在这一点上，检查整个迭代过程的收敛性。在BICAL程序中，Wright总结了两个连续迭代范式的项目难度参数估计值之间的绝对差异。如果这个和小于0:01，那么估计过程就终止了。如果大于0:01，则执行另一次迭代，并再次执行两个阶段。因此，重复(1)阶段一、(2)锚定度规、(3)阶段二、(4)收敛检验的过程，直到满足准则。当这种情况发生时，项目的当前值和能力参数估计值将被接受，并已定义了能力规模度量。
+
+* 此时难度的和为0。
+
+* 对于2pl和3pl来说，被试的theta不仅只和原始分有关，与其反应模式有关，不在于答对了多少道题，而在于答对了哪些题。
+
+
+#### 练习
+
+```{r}
+rm(list = ls())
+s <- c(13, 8, 8, 5, 10, 7, 7, 6, 7, 3)
+ f <- c(1, 2, 2, 4, 1, 1, 0, 0, 4)
+ convb <- 0.01; convt <- 0.01; convabd <- 0.01
+ J <- length(s); G <- length(f); K <- 25; T <- 10
+ b <- log((sum(f) - s) / s)
+ b <- b - mean(b)
+ oldb <- b
+ theta <-seq(1, G, 1)
+ for (g in 1:G) { theta[g] <- log(g / (J - g)) }
+ for (k in 1:K) {
+cat("cycle k=", k, "\n")
+for (j in 1:J) {
+for (t in 1:T) {
+sumfp <- 0
+sumfpq <- 0
+for (g in 1:G) {
+  p <- 1 / (1 + exp(-(theta[g] - b[j])))
+sumfp <- sumfp + f[g] * p
+sumfpq <- sumfpq + f[g] * p * (1 - p)
+}
+deltab <- (s[j] - sumfp) / sumfpq
+b[j] <- b[j] - deltab
+if (abs(deltab) < convb) { break }
+}
+}
+   
+b <- b - mean(b)
+for (g in 1:G) {
+for (t in 1:T) {
+sump <- 0
+sumpq <- 0
+for (j in 1:J) {
+p <- 1 / (1 + exp(-(theta[g] - b[j])))
+sump <- sump + p
+sumpq <- sumpq - p * (1 - p)
+}
+deltat <- (g - sump) / sumpq
+theta[g] <- theta[g] - deltat
+if (abs(deltat) < convt) { break }
+}
+}
+abd <- abs(b - oldb)
+if (sum(abd) < convabd) { break }
+else { oldb <- b }
+ }
+ b <- b * ((J - 1) / J)
+for (j in 1:J) {
+cat("b(", j, ")=", b[j], "\n")
+}
+for (g in 1:G) {
+for (t in 1:T) {
+sump <- 0
+sumpq <- 0
+for (j in 1:J) {
+p <- 1 / (1 + exp(-(theta[g] - b[j])))
+sump <- sump + p
+sumpq <- sumpq - p * (1 - p)
+}
+deltat <- (g - sump) / sumpq
+theta[g] <- theta[g] - deltat
+if (abs(deltat) < convt) { break }
+}
+}
+ theta <- theta * ((J - 2) / (J - 1))
+for (g in 1:G) {
+cat("theta(", g, ")=", theta[g], "\n")
+}
+
+```
+
+
+## 测验特征
+
+### 项目池/题库 item pool/item banking
+
+我们可以充分利用IRT来构造一个题库，这个题库是将一批测量同一潜在特质的题目施测于一个大样本群体，进而对题目进行参数标定来完成的。此题库也叫预标定题库。
+
+我们可以从题库中选取部分题目组成测验，测验的特征将可以通过特征曲线和信息曲线观测到。而这两条曲线与将要施测的考生的能力分布无关。
+
+预先校准项池的优点是，在进行测试之前，可以使用测试中包含的项的参数值来计算测试特征曲线和测试信息函数。这是可能的，因为这些曲线都不依赖于考生能力分数在能力量表上的分布。因此，一旦项目参数的值可用，就可以得到两条曲线。有了这两条曲线，在给一群考生考试之前，考试的构造者就对考试的表现有了很好的了解。此外，在实施和校准了测试之后，可以使用测试等价程序来表示新组考生在项目池度量中的能力估计。
+
+
+## 参数不变性
+
+题目参数不会因为估计时的能力范围而变化
+
+能力参数不会因为所施测的题目参数范围而变化
+
+如果测验标定时施测的人群是能力范围的而一部分会怎样？
+
+

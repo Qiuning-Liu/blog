@@ -1,0 +1,199 @@
+---
+title: notebook-IRT in R
+author: 秋宁
+date: '2020-06-11'
+slug: notebook-irt-in-r
+categories: []
+tags:
+  - IRT
+Description: ''
+Tags: []
+Categories: []
+DisableComments: no
+---
+
+
+
+<div id="信息量" class="section level2">
+<h2>信息量</h2>
+<p>编写绘制信息量图的函数：</p>
+<pre class="r"><code>&gt; tif &lt;- function(b, a, c) {
++     J &lt;- length(b)
++     if (missing(c)) 
++         c &lt;- rep(0, J)
++     if (missing(a)) 
++         a &lt;- rep(1, J)
++     theta &lt;- seq(-3, 3, 0.1)
++     ii &lt;- matrix(rep(0, length(theta) * J), nrow = length(theta))
++     i &lt;- rep(0, length(theta))
++     for (j in 1:J) {
++         Pstar &lt;- 1/(1 + exp(-a[j] * (theta - b[j])))
++         P &lt;- c[j] + (1 - c[j]) * Pstar
++         ii[, j] &lt;- a[j]^2 * P * (1 - P) * (Pstar/P)^2
++         i &lt;- i + ii[, j]
++     }
++     plot(theta, i, xlim = c(-3, 3), ylim = c(0, 10), type = &quot;l&quot;, xlab = &quot;Ability&quot;, 
++         ylab = &quot;Information&quot;, main = &quot;Test Information Function&quot;)
++ }</code></pre>
+<pre class="r"><code>&gt; tif(a = c(1, 2, 3), b = c(0.3, 0.4, 0.5))</code></pre>
+<p><img src="/post/2020-06-11-notebook-irt-in-r_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>其中三参数IRT的信息量计算方法如下：</p>
+<p><img src="C:\Users\Qiuning\AppData\Roaming\Typora\typora-user-images\image-20200314160147341.png" /></p>
+<p>1.测验信息量的一般水平取决于：</p>
+<ul>
+<li><p>题目数量</p></li>
+<li><p>题目的区分度均值</p></li>
+<li><p>以上两条适用于1参到3参三个模型</p></li>
+</ul>
+<p>2.信息量的形态取决于：</p>
+<ul>
+<li><p>题目难度参数在能力区间上的分布</p></li>
+<li><p>区分度参数的平均水平和其分布</p></li>
+</ul>
+<p>3.当题目难度参数在某个值附近分布的较为紧密时，测验信息量将集中在这个能力范围附近。信息量的极大值取决于题目的区分度参数。</p>
+<p>4.当题目难度参数分布的较为广泛时，测验信息量也会相比难度集中时平坦。</p>
+<p>5.当a&lt;1时，信息量水平一版较低，a&gt;1.7时，信息量水平较高。</p>
+<p>6.在三参数模型下，c参数越大，信息量水平在低能力水平越低。除此之外，c参数大将降低整体的信息量水平。</p>
+<p>7.很难获得一个几乎水平的信息量模型。要做到这一点,难度参数就必须分布要广，区分度参数需近似一个U型分布。且水平相对较低。</p>
+</div>
+<div id="测验标定测验校准test-calibration" class="section level2">
+<h2>测验标定/测验校准/Test Calibration</h2>
+<p>对一份测验进行题目参数的标定以用于后续测试的工作即为测验标定。通常是将测验施测于一组被试中，被试对题目进行二分作答。然后对作答数据进行两阶段的参数估计：第一步假设能力参数已知估计题目参数，第二步利用估计的题目参数估计能力值，然后循环两步直到达到了收敛标准。但这其中需要制定能力估计的尺度标准。</p>
+<div id="测验标定步骤" class="section level3">
+<h3>测验标定步骤：</h3>
+<ul>
+<li><p>对于那些作答全为1分或全为0分的被试，我们是无法进行极大似然估计的。因此在进行标定之前，需将这些作答进行剔除。</p></li>
+<li><p>在Rasch模型中，原始分是theta的充分统计量，答对题目数量相同的被试会获得同样的能力估计值。因此，区分有相同原始分的不同被试没有那么重要。因此，我们所需要的不是使用单个试题的答案，而是每个原始分数上正确回答每个题目的考生人数。因此，在Rasch模型下，一个编辑过的数据集被用作测试校准程序的初始起点。</p></li>
+<li><p>为了得到一个方便的中点值，从每个项目的难度估计值中减去平均项目难度，使得重新调整后的平均项目难度值为零。由于项目难度与能力量表用同一个度量单位表示，所以能力量表的中点和测量单位现在已经确定。由于这是在2阶段之间完成的，所以在第2阶段中估计的能力将在第1阶段中获得的重新标度的项目参数估计中定义的度量中。</p></li>
+<li><p>对应原始分数的能力值通过第二阶段被估计出来。在这一点上，检查整个迭代过程的收敛性。在BICAL程序中，Wright总结了两个连续迭代范式的项目难度参数估计值之间的绝对差异。如果这个和小于0:01，那么估计过程就终止了。如果大于0:01，则执行另一次迭代，并再次执行两个阶段。因此，重复(1)阶段一、(2)锚定度规、(3)阶段二、(4)收敛检验的过程，直到满足准则。当这种情况发生时，项目的当前值和能力参数估计值将被接受，并已定义了能力规模度量。</p></li>
+<li><p>此时难度的和为0。</p></li>
+<li><p>对于2pl和3pl来说，被试的theta不仅只和原始分有关，与其反应模式有关，不在于答对了多少道题，而在于答对了哪些题。</p></li>
+</ul>
+<div id="练习" class="section level4">
+<h4>练习</h4>
+<pre class="r"><code>&gt; rm(list = ls())
+&gt; s &lt;- c(13, 8, 8, 5, 10, 7, 7, 6, 7, 3)
+&gt; f &lt;- c(1, 2, 2, 4, 1, 1, 0, 0, 4)
+&gt; convb &lt;- 0.01
+&gt; convt &lt;- 0.01
+&gt; convabd &lt;- 0.01
+&gt; J &lt;- length(s)
+&gt; G &lt;- length(f)
+&gt; K &lt;- 25
+&gt; T &lt;- 10
+&gt; b &lt;- log((sum(f) - s)/s)
+&gt; b &lt;- b - mean(b)
+&gt; oldb &lt;- b
+&gt; theta &lt;- seq(1, G, 1)
+&gt; for (g in 1:G) {
++     theta[g] &lt;- log(g/(J - g))
++ }
+&gt; for (k in 1:K) {
++     cat(&quot;cycle k=&quot;, k, &quot;\n&quot;)
++     for (j in 1:J) {
++         for (t in 1:T) {
++             sumfp &lt;- 0
++             sumfpq &lt;- 0
++             for (g in 1:G) {
++                 p &lt;- 1/(1 + exp(-(theta[g] - b[j])))
++                 sumfp &lt;- sumfp + f[g] * p
++                 sumfpq &lt;- sumfpq + f[g] * p * (1 - p)
++             }
++             deltab &lt;- (s[j] - sumfp)/sumfpq
++             b[j] &lt;- b[j] - deltab
++             if (abs(deltab) &lt; convb) {
++                 break
++             }
++         }
++     }
++     
++     b &lt;- b - mean(b)
++     for (g in 1:G) {
++         for (t in 1:T) {
++             sump &lt;- 0
++             sumpq &lt;- 0
++             for (j in 1:J) {
++                 p &lt;- 1/(1 + exp(-(theta[g] - b[j])))
++                 sump &lt;- sump + p
++                 sumpq &lt;- sumpq - p * (1 - p)
++             }
++             deltat &lt;- (g - sump)/sumpq
++             theta[g] &lt;- theta[g] - deltat
++             if (abs(deltat) &lt; convt) {
++                 break
++             }
++         }
++     }
++     abd &lt;- abs(b - oldb)
++     if (sum(abd) &lt; convabd) {
++         break
++     } else {
++         oldb &lt;- b
++     }
++ }
+~# cycle k= 1 
+~# cycle k= 2 
+~# cycle k= 3 
+~# cycle k= 4 
+~# cycle k= 5
+&gt; b &lt;- b * ((J - 1)/J)
+&gt; for (j in 1:J) {
++     cat(&quot;b(&quot;, j, &quot;)=&quot;, b[j], &quot;\n&quot;)
++ }
+~# b( 1 )= -2.36761 
+~# b( 2 )= -0.265167 
+~# b( 3 )= -0.265167 
+~# b( 4 )= 0.9763713 
+~# b( 5 )= -0.9975242 
+~# b( 6 )= 0.1127705 
+~# b( 7 )= 0.1127705 
+~# b( 8 )= 0.5210009 
+~# b( 9 )= 0.1127705 
+~# b( 10 )= 2.059785
+&gt; for (g in 1:G) {
++     for (t in 1:T) {
++         sump &lt;- 0
++         sumpq &lt;- 0
++         for (j in 1:J) {
++             p &lt;- 1/(1 + exp(-(theta[g] - b[j])))
++             sump &lt;- sump + p
++             sumpq &lt;- sumpq - p * (1 - p)
++         }
++         deltat &lt;- (g - sump)/sumpq
++         theta[g] &lt;- theta[g] - deltat
++         if (abs(deltat) &lt; convt) {
++             break
++         }
++     }
++ }
+&gt; theta &lt;- theta * ((J - 2)/(J - 1))
+&gt; for (g in 1:G) {
++     cat(&quot;theta(&quot;, g, &quot;)=&quot;, theta[g], &quot;\n&quot;)
++ }
+~# theta( 1 )= -2.370017 
+~# theta( 2 )= -1.499325 
+~# theta( 3 )= -0.9058965 
+~# theta( 4 )= -0.4206984 
+~# theta( 5 )= 0.02104907 
+~# theta( 6 )= 0.4593398 
+~# theta( 7 )= 0.9328307 
+~# theta( 8 )= 1.501894 
+~# theta( 9 )= 2.328257</code></pre>
+</div>
+</div>
+</div>
+<div id="测验特征" class="section level2">
+<h2>测验特征</h2>
+<div id="项目池题库-item-poolitem-banking" class="section level3">
+<h3>项目池/题库 item pool/item banking</h3>
+<p>我们可以充分利用IRT来构造一个题库，这个题库是将一批测量同一潜在特质的题目施测于一个大样本群体，进而对题目进行参数标定来完成的。此题库也叫预标定题库。</p>
+<p>我们可以从题库中选取部分题目组成测验，测验的特征将可以通过特征曲线和信息曲线观测到。而这两条曲线与将要施测的考生的能力分布无关。</p>
+<p>预先校准项池的优点是，在进行测试之前，可以使用测试中包含的项的参数值来计算测试特征曲线和测试信息函数。这是可能的，因为这些曲线都不依赖于考生能力分数在能力量表上的分布。因此，一旦项目参数的值可用，就可以得到两条曲线。有了这两条曲线，在给一群考生考试之前，考试的构造者就对考试的表现有了很好的了解。此外，在实施和校准了测试之后，可以使用测试等价程序来表示新组考生在项目池度量中的能力估计。</p>
+</div>
+</div>
+<div id="参数不变性" class="section level2">
+<h2>参数不变性</h2>
+<p>题目参数不会因为估计时的能力范围而变化</p>
+<p>能力参数不会因为所施测的题目参数范围而变化</p>
+<p>如果测验标定时施测的人群是能力范围的而一部分会怎样？</p>
+</div>

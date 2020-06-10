@@ -1,0 +1,254 @@
+---
+title: notebook-learnR
+author: 秋宁
+date: '2020-06-11'
+slug: notebook-learnR
+categories:
+  - R
+tags: []
+---
+
+```{r, include=FALSE}
+library(data.table)
+knitr::opts_chunk$set(collapse = T, warning = FALSE, message = FALSE, tidy = T,comment='~#',prompt=TRUE)
+data <- data.frame(性别=c('男','男','女','女','女'),
+                     学历=c('本科','硕士研究生','博士研究生','本科','本科'),
+                     年龄分组=c('20岁及以下','20~30岁','30岁以上','20岁及以下','20岁及以下'),
+                     绩效=c('A','A','B','C','C'),
+                     数据导向=c(5,6,7,8,9),
+                     开放创新=c(4,5,6,8,10),
+                     沉着务实=c(9,6,6,9,10),
+                     沉着务实z=c(-0.8,1.6,1,0.65,-1.2),
+                     开放创新z=c(0.4,0.5,-0.6,1.8,1.2))
+list1 <- as.list(data[,5:7])
+list2 <- as.list(data[,2:6])
+```
+
+针对字符向量的数据编码格式查看与转换
+```{r}
+
+x <- enc2utf8(as.character(data$性别))
+Encoding(x)
+Encoding(x) <- 'utf-8'
+rm(x)
+```
+
+
+```{r}
+# eapply(e,FUN = mean)
+exists('data') #判断某R object是否存在
+
+
+```
+
+```{r}
+## 获得所有变量彼此之间的组合
+expand.grid(height = seq(1, 5, 1), weight = cumsum(2: 4),
+            sex = c("Male","Female"))
+```
+
+```{r}
+## 下限截断赋值
+pmax(data$开放创新z,1.2)
+
+## 上限截断赋值
+pmin(data$开放创新z,1.2)
+
+```
+
+
+```{r}
+## 交互式选择文件
+# file.choose(new = FALSE)
+
+```
+
+```{r}
+
+Map(mean,list1)
+##
+mapply(mean,list1)
+
+```
+
+```{r}
+Reduce("+",c(1,2,4))
+
+cumsum(c(1,2,4))
+
+Reduce(mean,c(1,2,3,4,5),accumulate = T)
+
+```
+
+
+```{r}
+# Filter(Negate(is.function),  sapply(ls(baseenv()), get, baseenv()))
+
+# Filter(is.function,  sapply(ls(baseenv()), get, baseenv()))
+
+# Negate 使函数的判断结果相反
+not.numeric <- Negate(is.numeric)
+not.numeric(c(1, 2, 3))
+is.numeric(c(1, 2, 3))
+
+```
+
+```{r}
+get('data')
+```
+
+```{r}
+length(list1)
+
+# 计算Lengths of List or Vector Elements
+lengths(list1)
+
+```
+
+```{r}
+#match returns a vector of the positions of (first) matches of its first argument in its second.
+
+# %in% is currently defined as
+# "%in%" <- function(x, table) match(x, table, nomatch = 0) > 0
+
+match('女', data$性别) > 0
+
+'女' %in% data$性别
+
+
+```
+
+pmatch 相关
+```{r}
+pmatch("", "")                             # returns NA
+pmatch("m",   c("mean", "median", "mode")) # returns NA
+pmatch("med", c("mean", "median", "mode")) # returns 2
+
+pmatch(c("", "ab", "ab"), c("abc", "ab"), dup = FALSE) #被匹配的数据集中的元素仅可使用一次
+pmatch(c("", "ab", "ab"), c("abc", "ab"), dup = TRUE)#被匹配的数据集中的元素可重复使用
+## compare
+charmatch(c("", "ab", "ab"), c("abc", "ab"))
+
+pmatch(c("", "ab", "abc", "ab"), c("abc", "ab"), dup = T) #被匹配的数据集中的元素可重复使用
+pmatch(c("", "ab", "abc", "ab"), c("abc", "ab"), dup = F) #被匹配的数据集中的元素仅可使用一次
+pmatch(c("", "ab", "abc", "ab"), c("abc", "ab","ab"), dup = F) #被匹配的数据集中的元素仅可使用一次
+
+```
+
+
+```{r}
+margin.table(as.matrix(data[,5:7]),margin = 1) # by row
+margin.table(as.matrix(data[,5:7]),margin = 2) # by col
+
+#This is really just apply(x, margin, sum) packaged up for newbies, except that if margin has length zero you get sum(x).
+```
+
+```{r}
+# 添加边界和
+addmargins(as.matrix(data[,5:7]))
+```
+
+```{r}
+prop.table(as.matrix(data[,5:7]),margin = 1) # by row
+prop.table(as.matrix(data[,5:7]),margin = 2) # by col
+prop.table(as.matrix(data[,5:7]),margin = NULL) # by all
+
+```
+
+```{r}
+make.unique(rep('T',10), sep = "_")
+
+# make.names()
+
+```
+
+```{r}
+#Logic: Logical Operators
+
+# ! x
+# x & y
+# x && y
+# x | y
+# x || y
+# xor(x, y)
+# 
+# isTRUE (x)
+# isFALSE(x)
+
+```
+
+```{r}
+seq_along(data$性别)
+seq_len(20)
+seq.int(from = 1, to = 5, by = 0.8)
+
+```
+
+
+```{r}
+# .First <- function() if(interactive()) x11()
+
+```
+
+```{r}
+#
+interaction(data$性别, data$学历)
+#factor; : where f:g is similar to interaction(f, g, sep = ":") when f and g are factors.
+
+data$性别:data$学历
+
+```
+
+
+```{r}
+#将output传出到文件
+# sink(file = 'xx.txt')
+# i=c(1,2,3)
+# i
+# sink()
+
+```
+
+
+
+数组
+```{r}
+# R中的数组可以有一个、两个或多个维度。它只是一个向量，其中存储了附加的属性，提供了维度(属性“dim”)和可选的维度名称(属性“dimnames”)。
+# 二维数组和矩阵是一样的。
+# 一维数组通常看起来像向量，但是某些函数处理的方式可能不同:str在最近的R版本中确实区分了它们。
+# “dim”属性是一个长度为1或多个的整数向量，包含非负值:这些值的乘积必须与数组的长度匹配。
+# “dimnames”属性是可选的:如果它是一个包含每个维度一个组件的列表，则要么为空，要么为该维度的“dim”属性的元素提供长度的字符向量。
+# 是多少。数组是一个基元函数。
+```
+
+
+## data table
+
+```{r}
+DT = data.table(x=rep(c("b","a","c"),each=3), v=c(1,1,1,2,2,1,1,2,2), y=c(1,3,6), a=1:9, b=9:1)
+DT
+X = data.table(x=c("c","b"), v=8:7, foo=c(4,2))
+X
+
+DT[.N]                                 # last row, only special symbol allowed in 'i'
+DT[, .N]                               # total number of rows in DT
+DT[, .N, by=x]                         # number of rows in each group
+DT[, .SD, .SDcols=x:y]                 # select columns 'x' and 'y'
+DT[, .SD[1]]                           # first row of all columns
+DT[, .SD[1], by=x]                     # first row of 'y' and 'v' for each group in 'x'
+DT[, c(.N, lapply(.SD, sum)), by=x]    # get rows *and* sum columns 'v' and 'y' by group
+DT[, .I[1], by=x]                      # row number in DT corresponding to each group
+DT[, .N, by=rleid(v)]                  # get count of consecutive runs of 'v'
+DT[, c(.(y=max(y)), lapply(.SD, min)),
+        by=rleid(v), .SDcols=v:b]      # compute 'j' for each consecutive runs of 'v'
+DT[, grp := .GRP, by=x]                # add a group counter
+X[, DT[.BY, y, on="x"], by=x]          # join within each group
+```
+
+
+
+
+
+
+
+
