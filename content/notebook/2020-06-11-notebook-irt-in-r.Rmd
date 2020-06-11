@@ -2,13 +2,8 @@
 title: notebook-IRT in R
 author: 秋宁
 date: '2020-06-11'
-slug: notebook-irt-in-r
-categories: []
 tags:
   - IRT
-Description: ''
-Tags: []
-Categories: []
 DisableComments: no
 ---
 ```{r, include=FALSE}

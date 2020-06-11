@@ -2,10 +2,8 @@
 title: notebook-learnR
 author: 秋宁
 date: '2020-06-11'
-slug: notebook-learnR
 categories:
   - R
-tags: []
 ---
 
 ```{r, include=FALSE}
