@@ -1,0 +1,1017 @@
+---
+title: Plotly
+author: 秋宁
+date: '2020-08-19'
+categories:
+  - R
+tags:
+  - R plot
+slug: plotly
+DisableComments: no
+---
+```{r, include=FALSE}
+knitr::opts_chunk$set(collapse = T, warning = FALSE, message = FALSE, tidy = T,comment='~#',prompt=TRUE)
+library(plotly)
+library(dplyr)
+library(RDDQ)
+```
+
+# 基础图形
+
+## 散点图-scatter
+
+`type='scatter'`  
+`mode='lines' 'markers' 'lines+markers'`  
+
+普通散点图  
+
+```{r}
+fig <- plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length)
+
+fig
+```
+
+颜色分组  
+`color`  
+
+```{r}
+fig <- plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length, color = ~Species)
+
+fig
+```
+
+选择颜色调色盘  
+`colors`  
+
+```{r}
+fig <- plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length, color = ~Species, colors = "Set1")
+
+fig
+```
+
+对特殊分组使用特殊颜色  
+通过设置调色盘实现  
+
+```{r}
+pal <- c("red", "blue", "green")
+pal <- setNames(pal, c("virginica", "setosa", "versicolor"))
+
+fig <- plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length, color = ~Species, colors = pal)
+
+fig
+```
+
+线+点复合图
+```{r}
+trace_0 <- rnorm(100, mean = 5)
+trace_1 <- rnorm(100, mean = 0)
+trace_2 <- rnorm(100, mean = -5)
+x <- c(1:100)
+
+data <- data.frame(x, trace_0, trace_1, trace_2)
+
+fig <- plot_ly(data, x = ~x, y = ~trace_0, name = 'trace 0', type = 'scatter', mode = 'lines')
+fig <- fig %>% add_trace(y = ~trace_1, name = 'trace 1', mode = 'lines+markers')
+fig <- fig %>% add_trace(y = ~trace_2, name = 'trace 2', mode = 'markers')
+
+fig
+```
+
+符号/点的形状分组  
+`symbol`指定所用分组变量  
+`symbols`指定各个分组的代表符号  
+
+```{r}
+fig <- plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length, type = 'scatter',
+  mode = 'markers', symbol = ~Species, symbols = c('circle','x','o'),
+  color = I('black'), marker = list(size = 10))
+
+fig
+```
+
+Size Mapping，点的大小随点的数值而变  
+`size`  
+
+```{r}
+d <- diamonds[sample(nrow(diamonds), 1000), ]
+
+fig <- plot_ly(d, x = ~carat, y = ~price,color = ~carat, size = ~carat)
+
+fig
+```
+
+自定义 Data Labels on Hover  
+
+```{r}
+
+fig <- plot_ly(
+  d, x = ~carat, y = ~price,
+  # Hover text:
+  text = ~paste("Price: ", price, '$<br>Cut:', cut),
+  color = ~carat, size = ~carat
+)
+
+fig
+
+```
+
+
+<!-- ## 线图-lines plots -->
+
+## 箱图-Boxplot
+`type = 'box`  
+标记离群值  
+```{r}
+y1 <- c(0.75, 5.25, 5.5, 6, 6.2, 6.6, 6.80, 7.0, 7.2, 7.5, 7.5, 7.75, 8.15,
+       8.15, 8.65, 8.93, 9.2, 9.5, 10, 10.25, 11.5, 12, 16, 20.90, 22.3, 23.25)
+y2 <- c(0.75, 5.25, 5.5, 6, 6.2, 6.6, 6.80, 7.0, 7.2, 7.5, 7.5, 7.75, 8.15,
+        8.15, 8.65, 8.93, 9.2, 9.5, 10, 10.25, 11.5, 12, 16, 20.90, 22.3, 23.25)
+y3 <- c(0.75, 5.25, 5.5, 6, 6.2, 6.6, 6.80, 7.0, 7.2, 7.5, 7.5, 7.75, 8.15,
+        8.15, 8.65, 8.93, 9.2, 9.5, 10, 10.25, 11.5, 12, 16, 20.90, 22.3, 23.25)
+y4 <- c(0.75, 5.25, 5.5, 6, 6.2, 6.6, 6.80, 7.0, 7.2, 7.5, 7.5, 7.75, 8.15,
+        8.15, 8.65, 8.93, 9.2, 9.5, 10, 10.25, 11.5, 12, 16, 20.90, 22.3, 23.25)
+
+fig <- plot_ly(type = 'box')
+fig <- fig %>% add_boxplot(y = y1, jitter = 0.3, pointpos = -1.8, boxpoints = 'all',
+              marker = list(color = 'rgb(7,40,89)'),
+              line = list(color = 'rgb(7,40,89)'),
+              name = "All Points")
+fig <- fig %>% add_boxplot(y = y2, name = "Only Whiskers", boxpoints = FALSE,
+              marker = list(color = 'rgb(9,56,125)'),
+              line = list(color = 'rgb(9,56,125)'))
+fig <- fig %>% add_boxplot(y = y3, name = "Suspected Outlier", boxpoints = 'suspectedoutliers',
+              marker = list(color = 'rgb(8,81,156)',
+                            outliercolor = 'rgba(219, 64, 82, 0.6)',
+                            line = list(outliercolor = 'rgba(219, 64, 82, 1.0)',
+                                        outlierwidth = 2)),
+              line = list(color = 'rgb(8,81,156)'))
+fig <- fig %>% add_boxplot(y = y4, name = "Whiskers and Outliers", boxpoints = 'outliers',
+              marker = list(color = 'rgb(107,174,214)'),
+              line = list(color = 'rgb(107,174,214)'))
+fig <- fig %>% layout(title = "Box Plot Styling Outliers")
+
+fig
+```
+
+
+## 柱形图-bar charts
+
+### 单变量柱状图
+`type='bar'`
+
+可通过`text`加标签，通过·`textposition`确定标签位置
+通过`marker`设置柱子的宽度、颜色、边界颜色  
+
+```{r}
+fig <- plot_ly(
+  x = c("giraffes", "orangutans", "monkeys"),
+  y = c(20, 14, 23),
+  name = "SF Zoo",
+  type = "bar",
+  text= c(20, 14, 23),
+  textposition = 'auto',
+  marker = list(color = 'rgb(158,202,225)',
+                           line = list(color = 'rgb(8,48,107)', width = 1.5))
+)
+
+fig
+```
+
+### 多变量柱状图
+
+`barmode='group'`，通过name指定柱子的标签
+layout里`yaxis`设置纵坐标标题，`xaxis`设置横坐标标题
+
+```{r}
+Animals <- c("giraffes", "orangutans", "monkeys")
+SF_Zoo <- c(20, 14, 23)
+LA_Zoo <- c(12, 18, 29)
+data <- data.frame(Animals, SF_Zoo, LA_Zoo)
+
+fig <- plot_ly(data, x = ~Animals, y = ~SF_Zoo, type = 'bar', name = 'SF Zoo')
+fig <- fig %>% add_trace(y = ~LA_Zoo, name = 'LA Zoo')
+fig <- fig %>% layout(yaxis = list(title = 'Count'), barmode = 'group')
+
+fig
+```
+
+给柱子按分组加颜色  
+
+```{r}
+fig <- ggplot2::diamonds
+fig <- fig %>% count(cut, clarity)
+fig <- fig %>% plot_ly(x = ~cut, y = ~n, color = ~clarity)
+
+fig
+```
+
+
+### 堆积图  
+
+在layout里设置 `barmode='stack'`  
+
+```{r}
+
+fig <- plot_ly(data, x = ~Animals, y = ~SF_Zoo, type = 'bar', name = 'SF Zoo')
+fig <- fig %>% add_trace(y = ~LA_Zoo, name = 'LA Zoo')
+fig <- fig %>% layout(yaxis = list(title = 'Count'), barmode = 'stack')
+
+fig
+```
+
+在layout里自定义横坐标标签的角度  
+关于`margin`:  
+`l`代表左边界距离  
+`r`代表右边界距离  
+`t`代表上边界距离  
+`b`代表下边界距离  
+`pad`设置绘图区域和轴线之间的距离  
+
+```{r}
+x <- c('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December')
+y1 <- c(20, 14, 25, 16, 18, 22, 19, 15, 12, 16, 14, 17)
+y2 <- c(19, 14, 22, 14, 16, 19, 15, 14, 10, 12, 12, 16)
+data <- data.frame(x, y1, y2)
+
+#The default order will be alphabetized unless specified as below:
+data$x <- factor(data$x, levels = data[["x"]])
+
+fig <- plot_ly(data, x = ~x, y = ~y1, type = 'bar', name = 'Primary Product', marker = list(color = 'rgb(49,130,189)'))
+fig <- fig %>% add_trace(y = ~y2, name = 'Secondary Product', marker = list(color = 'rgb(204,204,204)'))
+fig <- fig %>% layout(xaxis = list(title = "", tickangle = -45),
+         yaxis = list(title = ""),
+         margin = list(pad = 100),
+         barmode = 'group')
+
+fig
+```
+
+### 横向柱状图  
+`orientation = 'h'`
+
+```{r}
+
+fig <- plot_ly(x = c(20, 14, 23), y = c('giraffes', 'orangutans', 'monkeys'), type = 'bar', orientation = 'h')
+
+fig
+```
+
+自定义柱子颜色和宽度  
+
+```{r}
+
+y <- c('giraffes', 'orangutans', 'monkeys')
+SF_Zoo <- c(20, 14, 23)
+LA_Zoo <- c(12, 18, 29)
+data <- data.frame(y, SF_Zoo, LA_Zoo)
+
+fig <- plot_ly(data, x = ~SF_Zoo, y = ~y, type = 'bar', orientation = 'h', name = 'SF Zoo',
+        marker = list(color = 'rgba(246, 78, 139, 0.6)',
+                      line = list(color = 'rgba(246, 78, 139, 1.0)',
+                                  width = 3)))
+fig <- fig %>% add_trace(x = ~LA_Zoo, name = 'LA Zoo',
+            marker = list(color = 'rgba(58, 71, 80, 0.6)',
+                          line = list(color = 'rgba(58, 71, 80, 1.0)',
+                                      width = 3)))
+fig <- fig %>% layout(barmode = 'stack',
+         xaxis = list(title = ""),
+         yaxis = list(title =""))
+
+fig
+```
+
+### 复杂横向图
+第一步：构建基础柱状图
+```{r}
+y <- c('The course was effectively<br>organized',
+       'The course developed my<br>abilities and skills for<br>the subject',
+       'The course developed my<br>ability to think critically about<br>the subject',
+       'I would recommend this<br>course to a friend')
+x1 <- c(21, 24, 27, 29)
+x2 <-c(30, 31, 26, 24)
+x3 <- c(21, 19, 23, 15)
+x4 <- c(16, 15, 11, 18)
+x5 <- c(12, 11, 13, 14)
+
+data <- data.frame(y, x1, x2, x3, x4, x5)
+
+top_labels <- c('Strongly<br>agree', 'Agree', 'Neutral', 'Disagree', 'Strongly<br>disagree')
+
+fig <- plot_ly(data, x = ~x1, y = ~y, type = 'bar', orientation = 'h',
+        marker = list(color = 'rgba(38, 24, 74, 0.8)',
+                      line = list(color = 'rgb(248, 248, 249)', width = 1))) 
+fig <- fig %>% add_trace(x = ~x2, marker = list(color = 'rgba(71, 58, 131, 0.8)')) 
+fig <- fig %>% add_trace(x = ~x3, marker = list(color = 'rgba(122, 120, 168, 0.8)')) 
+fig <- fig %>% add_trace(x = ~x4, marker = list(color = 'rgba(164, 163, 204, 0.85)')) 
+fig <- fig %>% add_trace(x = ~x5, marker = list(color = 'rgba(190, 192, 213, 1)'))
+fig
+```
+
+第二步：转为横向堆积图模式，去除title等    
+```{r}
+fig <- fig %>% layout(xaxis = list(title = "",
+                      showgrid = FALSE,
+                      showline = FALSE,
+                      showticklabels = FALSE,
+                      zeroline = FALSE,
+                      domain = c(0.15, 1)),
+         yaxis = list(title = "",
+                      showgrid = FALSE,
+                      showline = FALSE,
+                      showticklabels = FALSE,
+                      zeroline = FALSE),
+         barmode = 'stack',
+         paper_bgcolor = 'rgb(248, 248, 255)', plot_bgcolor = 'rgb(248, 248, 255)',
+         margin = list(l = 120, r = 10, t = 140, b = 80),
+         showlegend = FALSE)
+fig
+```
+
+第三步：微调，增加信息元素  
+`add_annotations`添加注释  
+关于`xref`和`yref`:
+'If set to an x axis id (e.g. *x* or *x2*), the `x` position', 'refers to an x coordinate', 'If set to *paper*, the `x` position refers to the distance from'
+当指定为paper时，x与y指定值代表坐标位置  
+
+```{r}
+# labeling the y-axis
+fig <- fig %>% add_annotations(xref = 'paper', yref = 'y', x = 0.14, y = y,
+                  xanchor = 'right',
+                  text = y,
+                  font = list(family = 'Arial', size = 12,
+                            color = 'rgb(67, 67, 67)'),
+                  showarrow = FALSE, align = 'right') 
+  # labeling the percentages of each bar (x_axis)
+
+fig <- fig %>% add_annotations(xref = 'x', yref = 'y',
+                  x = x1 / 2, y = y,
+                  text = paste(data[,"x1"], '%'),
+                  font = list(family = 'Arial', size = 12,
+                            color = 'rgb(248, 248, 255)'),
+                  showarrow = FALSE) 
+fig <- fig %>% add_annotations(xref = 'x', yref = 'y',
+                  x = x1 + x2 / 2, y = y,
+                  text = paste(data[,"x2"], '%'),
+                  font = list(family = 'Arial', size = 12,
+                              color = 'rgb(248, 248, 255)'),
+                  showarrow = FALSE) 
+fig <- fig %>% add_annotations(xref = 'x', yref = 'y',
+                  x = x1 + x2 + x3 / 2, y = y,
+                  text = paste(data[,"x3"], '%'),
+                  font = list(family = 'Arial', size = 12,
+                              color = 'rgb(248, 248, 255)'),
+                  showarrow = FALSE) 
+fig <- fig %>% add_annotations(xref = 'x', yref = 'y',
+                  x = x1 + x2 + x3 + x4 / 2, y = y,
+                  text = paste(data[,"x4"], '%'),
+                  font = list(family = 'Arial', size = 12,
+                              color = 'rgb(248, 248, 255)'),
+                  showarrow = FALSE) 
+fig <- fig %>% add_annotations(xref = 'x', yref = 'y',
+                  x = x1 + x2 + x3 + x4 + x5 / 2, y = y,
+                  text = paste(data[,"x5"], '%'),
+                  font = list(family = 'Arial', size = 12,
+                              color = 'rgb(248, 248, 255)'),
+                  showarrow = FALSE) 
+  # labeling the first Likert scale (on the top)
+fig <- fig %>% add_annotations(xref = 'x', yref = 'paper',
+                  x = c(21 / 2, 21 + 30 / 2, 21 + 30 + 21 / 2, 21 + 30 + 21 + 16 / 2,
+                        21 + 30 + 21 + 16 + 12 / 2),
+                  y = 1.15,
+                  text = top_labels,
+                  font = list(family = 'Arial', size = 12,
+                              color = 'rgb(67, 67, 67)'),
+                  showarrow = FALSE)
+
+fig
+```
+
+### 更复杂的复合图  
+第一步：绘制图形1
+
+```{r}
+y <- c('Japan', 'United Kingdom', 'Canada', 'Netherlands', 'United States', 'Belgium', 'Sweden', 'Switzerland')
+x_saving <- c(1.3586, 2.2623000000000002, 4.9821999999999997, 6.5096999999999996,
+              7.4812000000000003, 7.5133000000000001, 15.2148, 17.520499999999998)
+x_net_worth <- c(93453.919999999998, 81666.570000000007, 69889.619999999995, 78381.529999999999,
+                 141395.29999999999, 92969.020000000004, 66090.179999999993, 122379.3)
+data <- data.frame(y, x_saving, x_net_worth)
+
+fig1 <- plot_ly(x = ~x_saving, y = ~reorder(y, x_saving), name = 'Household savings, percentage of household disposable income',
+              type = 'bar', orientation = 'h',
+              marker = list(color = 'rgba(50, 171, 96, 0.6)',
+                            line = list(color = 'rgba(50, 171, 96, 1.0)', width = 1))) 
+fig1 <- fig1 %>% layout(yaxis = list(showgrid = FALSE, showline = FALSE, showticklabels = TRUE, domain= c(0, 0.85)),
+         xaxis = list(zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE)) 
+fig1 <- fig1 %>% add_annotations(xref = 'x1', yref = 'y',
+                  x = x_saving * 2.1 + 3,  y = y,
+                  text = paste(round(x_saving, 2), '%'),
+                  font = list(family = 'Arial', size = 12, color = 'rgb(50, 171, 96)'),
+                  showarrow = FALSE)
+fig1
+```
+
+第二步：绘制图形2
+```{r}
+fig2 <- plot_ly(x = ~x_net_worth, y = ~reorder(y, x_saving), name = 'Household net worth, Million USD/capita',
+              type = 'scatter', mode = 'lines+markers',
+              line = list(color = 'rgb(128, 0, 128)')) 
+fig2 <- fig2 %>% layout(yaxis = list(showgrid = FALSE, showline = TRUE, showticklabels = FALSE,
+                       linecolor = 'rgba(102, 102, 102, 0.8)', linewidth = 2,
+                       domain = c(0, 0.85)),
+         xaxis = list(zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE,
+                       side = 'top', dtick = 25000)) 
+fig2 <- fig2 %>% add_annotations(xref = 'x2', yref = 'y',
+                  x = x_net_worth, y = y,
+                  text = paste(x_net_worth, 'M'),
+                  font = list(family = 'Arial', size = 12, color = 'rgb(128, 0, 128)'),
+                  showarrow = FALSE)
+fig2
+```
+
+第三步：组合  
+用`subplot`来组合两个图片  
+`add_annotations`可在图形的任何地方加注释  
+```{r}
+fig <- subplot(fig1, fig2) 
+
+fig <- fig %>% layout(title = 'Household savings & net worth for eight OECD countries',
+         legend = list(x = 0.029, y = 1.038,
+                       font = list(size = 10)), # 定义legend的位置
+         margin = list(l = 100, r = 20, t = 70, b = 70),
+         paper_bgcolor = 'rgb(248, 248, 255)',
+         plot_bgcolor = 'rgb(248, 248, 255)')
+
+# 增加脚注
+fig <- fig %>% add_annotations(xref = 'paper', yref = 'paper', #设置为paper
+                  x = -0.14, y = -0.15,
+                  text = paste('OECD (2015), Household savings (indicator), Household net worth (indicator). doi: 10.1787/cfc6f499-en (Accessed on 05 June 2015)'),
+                  font = list(family = 'Arial', size = 10, color = 'rgb(150,150,150)'),
+                  showarrow = FALSE)
+
+fig
+```
+
+合并4个图形  
+
+```{r}
+fig3 <- fig4 <- fig
+```
+
+```{r}
+fig <- subplot(style(fig3, showlegend = FALSE), fig4,nrows = 2,margin = 0.1) 
+
+fig <- fig %>% layout(legend = list(x = 0.029, y = 1.1,
+                       font = list(size = 10)))
+
+fig
+```
+
+## 饼图-pie charts
+`type='pie'`  
+设置text格式：`textinfo='label+percent'`   
+设置标签的对齐格式：`insidetextorientation='radial'`
+```{r}
+labels = c('Oxygen','Hydrogen','Carbon_Dioxide','Nitrogen')
+values = c(4500, 2500, 1053, 500)
+
+fig <- plot_ly(type='pie', labels=labels, values=values, 
+               textinfo='label+percent',
+               insidetextorientation='radial')
+fig
+```
+
+### Donut Chart
+`add_pie(hole = 0.6)`  
+
+```{r}
+mtcars$manuf <- sapply(strsplit(rownames(mtcars), " "), "[[", 1)
+
+df <- mtcars
+df <- df %>% group_by(manuf)
+df <- df %>% summarize(count = n())
+fig <- df %>% plot_ly(labels = ~manuf, values = ~count)
+fig <- fig %>% add_pie(hole = 0.6)
+fig <- fig %>% layout(title = "Donut charts using Plotly",  showlegend = F,
+                      xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig
+```
+
+
+## 旭日图-sunburst charts
+
+### 简单旭日图  
+`type = 'sunburst'`  
+
+```{r}
+
+fig <- plot_ly(
+  labels = c("Eve", "Cain", "Seth", "Enos", "Noam", "Abel", "Awan", "Enoch", "Azura"), #子集
+  parents = c("", "Eve", "Eve", "Seth", "Seth", "Eve", "Eve", "Awan", "Eve"), #母集
+  values = c(10, 14, 12, 10, 2, 6, 6, 4, 4), #子集值
+  type = 'sunburst'
+)
+
+fig
+```
+
+设置子集的总数==母集宽度  
+`branchvalues = 'total'`  
+```{r}
+fig <- plot_ly(
+  labels = c("Eve", "Cain", "Seth", "Enos", "Noam", "Abel", "Awan", "Enoch", "Azura"),
+  parents = c("", "Eve", "Eve", "Seth", "Seth", "Eve", "Eve", "Awan", "Eve"),
+  values = c(65, 14, 12, 10, 2, 6, 6, 4, 4),
+  type = 'sunburst',
+  branchvalues = 'total'
+)
+
+fig
+```
+
+### 多层级旭日图
+
+```{r}
+df <- read.xlsx('C:\\Users\\Qiuning\\Desktop\\POfit\\1-题目与计分\\pofit旭日图.xlsx',fillMergedCells =T)
+fig <- plot_ly()
+
+fig <- fig %>% add_trace(
+  type='sunburst',
+  # ids=df$ids,
+  labels=df$labels,
+  parents=df$parents,
+  domain=list(column=1),
+  maxdepth=3,
+  insidetextorientation='radial'
+)
+fig <- fig %>%
+    layout(title = 'POFIT标准15维度关系图<br>(可点击查看详细)',
+      margin = list(l = 0, r = 0, b = 0,t=-0.5),
+      sunburstcolorway = c("#43506C","#ef4b4c","#3D619B","#e9e9eb"),
+      extendsunburstcolors = TRUE)
+
+
+fig
+```
+
+使用layout中的grid来画旭日图的组合图
+
+```{r}
+d1 <- read.xlsx('C:\\Users\\Qiuning\\Desktop\\POfit\\1-题目与计分\\pofit旭日图.xlsx',fillMergedCells =T)
+d2 <- read.xlsx('C:\\Users\\Qiuning\\Desktop\\POfit\\1-题目与计分\\pofit旭日图.xlsx',sheet=2)
+fig <- plot_ly() 
+fig <- fig %>%
+  add_trace(
+    # ids = d1$ids,
+    labels = d1$labels,
+    parents = d1$parents,
+    type = 'sunburst',
+    maxdepth = 3,
+    domain = list(column = 0)
+    ) 
+fig <- fig %>%
+  add_trace(
+    # ids = d2$ids,
+    labels = d2$labels,
+    parents = d2$parents,
+    type = 'sunburst',
+    maxdepth = 3,
+    domain = list(column = 1)
+  )
+fig
+```
+
+
+```{r}
+fig <- fig %>%
+    layout(
+      grid = list(columns =2, rows = 1),
+      margin = list(l = 0, r = 0, b = 0, t = 0),
+      sunburstcolorway = c(
+        "#636efa","#EF553B","#00cc96","#ab63fa","#19d3f3",
+        "#e763fa", "#FECB52","#FFA15A","#FF6692","#B6E880"
+      ),
+      extendsunburstcolors = TRUE)
+fig
+```
+
+
+## 表格-tables
+
+基础表格  
+plotly中表格的最大优势是可以交互式的拖拽  
+`type = 'table'`  
+```{r}
+fig <- plot_ly(
+  type = 'table',
+  header = list(
+    values = c('<b>EXPENSES</b>', '<b>Q1</b>','<b>Q2</b>','<b>Q3</b>','<b>Q4</b>'),
+    line = list(color = '#506784'),
+    fill = list(color = '#119DFF'),
+    align = c('left','center'),
+    font = list(color = 'white', size = 12)
+  ),
+  cells = list(
+    values = rbind(
+      c('Salaries', 'Office', 'Merchandise', 'Legal', '<b>TOTAL</b>'),
+      c(1200000, 20000, 80000, 2000, 1212000),
+      c(1300000, 20000, 70000, 2000, 1392000),
+      c(1300000, 20000, 120000, 2000, 1442000),
+      c(1400000, 20000, 90000, 2000, 1412000)),
+    line = list(color = '#506784'),
+    fill = list(color = c('#25FEFD', 'white')),
+    align = c('left', 'center'),
+    font = list(color = c('#506784'), size = 12)
+    ))
+
+fig
+```
+
+## 甘特图-Gantt Charts
+本质是循环画线图实现的：`mode = "lines"`,`line = list(color = df$color[i], width = 20)`
+
+```{r}
+# Read in data
+df <- read.csv("https://cdn.rawgit.com/plotly/datasets/master/GanttChart-updated.csv", stringsAsFactors = F)
+
+# Convert to dates
+df$Start <- as.Date(df$Start, format = "%m/%d/%Y")
+
+# Sample client name
+client = "Sample Client"
+
+# Choose colors based on number of resources
+cols <- RColorBrewer::brewer.pal(length(unique(df$Resource)), name = "Set3")
+df$color <- factor(df$Resource, labels = cols)
+
+# Initialize empty plot
+fig <- plot_ly()
+
+# Each task is a separate trace
+# Each trace is essentially a thick line plot
+# x-axis ticks are dates and handled automatically
+
+for(i in 1:(nrow(df) )){
+ fig <- add_trace(fig,
+                 x = c(df$Start[i], df$Start[i] + df$Duration[i]),  # x0, x1
+                 y = c(i, i),  # y0, y1
+                 mode = "lines",
+                 line = list(color = df$color[i], width = 20),
+                 showlegend = F,
+                 hoverinfo = "text",
+
+                 # Create custom hover text
+
+                 text = paste("Task: ", df$Task[i], "<br>",
+                              "Duration: ", df$Duration[i], "days<br>",
+                              "Resource: ", df$Resource[i]),
+
+                  evaluate = T  # needed to avoid lazy loading
+  )
+}
+
+fig
+```
+设置背景颜色
+```{r}
+fig <- layout(fig,
+
+            # Axis options:
+            # 1. Remove gridlines
+            # 2. Customize y-axis tick labels and show task names instead of numbers
+
+            xaxis = list(showgrid = F, tickfont = list(color = "#e6e6e6")),
+
+            yaxis = list(showgrid = F, tickfont = list(color = "#e6e6e6"),
+                         tickmode = "array", tickvals = 1:nrow(df), ticktext = unique(df$Task),
+                         domain = c(0, 0.9)),
+
+            plot_bgcolor = "#333333",  # Chart area color
+            paper_bgcolor = "#333333") # Axis area color
+
+
+fig
+```
+
+添加注释  
+```{r}
+# Add total duration and total resources used
+# x and y coordinates are based on a domain of [0,1] and not
+# actual x-axis and y-axis values
+a <- list(xref = "paper",
+          yref = "paper",
+          x = 0.80,
+          y = 0.1,
+          text = paste0("Total Duration: ", sum(df$Duration), " days<br>",
+                        "Total Resources: ", length(unique(df$Resource)), "<br>"),
+          font = list(color = '#264E86', size = 12),
+          ax = 0,
+          ay = 0,
+          align = "left",
+          showarrow = FALSE)
+
+# Add client name and title on top
+b <- list(xref = "paper",
+          yref = "paper",
+          x = 0.1,
+          y = 1,
+          xanchor = "left",
+          text = paste0("Gantt Chart: ", client),
+          font = list(color = '#264E86', size = 20, family = "Times New Roman"),
+          ax = 0,
+          ay = 0,
+          align = "left",
+          showarrow = FALSE)
+
+
+fig <- fig %>% layout(annotations = a) 
+fig <- fig %>% layout(annotations = b)
+
+fig
+```
+
+## 管道图-Funnel Plot
+`type = "funnel"`  
+使用marker来指定颜色
+```{r}
+fig <- plot_ly() 
+fig <- fig %>%
+  add_trace(
+  type = "funnel",
+  y = c("Website visit", "Downloads", "Potential customers", "Requested price", "invoice sent"),
+  x = c(39, 27.4, 20.6, 11, 2),
+  marker = list(line = list(color = c("wheat", "wheat", "blue", "wheat", "wheat"), width = c(0, 0, 5, 0, 0)))) 
+fig <- fig %>%
+  layout(yaxis = list(categoryarray = c("Website visit", "Downloads", "Potential customers", "Requested price", "invoice sent")))
+
+fig
+```
+
+## 仪表图-Gauge Chart
+`type = "indicator"`  
+`mode = "gauge+number"`  
+```{r}
+fig <- plot_ly(
+    domain = list(x = c(0, 1), y = c(0, 1)),
+    value = 270,
+    title = list(text = "Speed"),
+    type = "indicator",
+    mode = "gauge+number") 
+fig <- fig %>%
+  layout(margin = list(l=20,r=30))
+
+fig
+
+```
+
+增加steps（步骤阴影），delta（与目标值的差值），阈值（边界）  
+`mode = "gauge+number+delta"`  
+```{r}
+fig <- plot_ly(
+  domain = list(x = c(0, 1), y = c(0, 1)),
+  value = 450,
+  title = list(text = "Speed"),
+  type = "indicator",
+  mode = "gauge+number+delta",
+  delta = list(reference = 380),
+  gauge = list(
+    axis =list(range = list(NULL, 500)),
+    steps = list(
+      list(range = c(0, 250), color = "lightgray"),
+      list(range = c(250, 400), color = "gray")),
+    threshold = list(
+      line = list(color = "red", width = 4),
+      thickness = 0.75,
+      value = 490)
+    )) 
+fig <- fig %>%
+  layout(margin = list(l=20,r=30))
+
+fig
+```
+
+进行配色等自定义
+```{r}
+fig <- plot_ly(
+  type = "indicator",
+  mode = "gauge+number+delta",
+  value = 420,
+  title = list(text = "Speed", font = list(size = 24)),
+  delta = list(reference = 400, increasing = list(color = "RebeccaPurple")),
+  gauge = list(
+    axis = list(range = list(NULL, 500), tickwidth = 1, tickcolor = "darkblue"),
+    bar = list(color = "darkblue"),
+    bgcolor = "white",
+    borderwidth = 2,
+    bordercolor = "gray",
+    steps = list(
+      list(range = c(0, 250), color = "cyan"),
+      list(range = c(250, 400), color = "royalblue")),
+    threshold = list(
+      line = list(color = "red", width = 4),
+      thickness = 0.75,
+      value = 490))) 
+fig <- fig %>%
+  layout(margin = list(l=20,r=30),
+    paper_bgcolor = "lavender",
+    font = list(color = "darkblue", family = "Arial"))
+
+fig
+
+```
+
+## 子弹图-Bullet Charts
+基于仪表图  
+`type = "indicator"`  
+`mode = "number+gauge+delta"`  
+`gauge`中需设置`shape = "bullet"` 
+```{r}
+fig <- plot_ly(
+  type = "indicator",
+  mode = "number+gauge+delta",
+  value = 220,
+  domain = list(x = c(0, 1), y = c(0, 1)),
+  delta = list(reference = 280, position = "top"),
+  title = list(
+    text = "<b>Profit</b><br><span style='color: gray; font-size:0.8em'>U.S. $</span>",
+    font = list(size = 14)),
+  gauge = list(
+    shape = "bullet",
+    axis = list(range = c(NULL, 300)),
+    threshold = list(
+      line = list(color = "red", width = 2, gradient = list(yanchor = "vertical")),
+      thickness = 0.75,
+      value = 270),
+    bgcolor = "white",
+    steps = list(list(range = c(0, 150), color = "cyan")),
+    bar = list(color = "darkblue")),
+  height = 150)
+
+fig
+```
+
+## 地毯图-Carpet Plot
+`type = 'carpet`  
+
+```{r}
+fig <- plot_ly(
+    type = 'carpet',
+    a = c(4, 4, 4, 4.5, 4.5, 4.5, 5, 5, 5, 6, 6, 6),
+    b = c(1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3),
+    y = c(2, 3.5, 4, 3, 4.5, 5, 5.5, 6.5, 7.5, 8, 8.5, 10),
+    aaxis = list(
+      tickprefix = 'a = ',
+      ticksuffix = 'm',
+      smoothing = 1,
+      minorgridcount = 9
+      ),
+    baxis = list(
+      tickprefix = 'b = ',
+      ticksuffix = 'Pa',
+      smoothing = 1,
+      minorgridcount = 9
+      )
+    )
+
+fig
+```
+
+##雷达图
+`type = 'scatterpolar'`  
+`fill = 'toself'`  
+
+```{r}
+fig <- plot_ly(
+    type = 'scatterpolar',
+    fill = 'toself'
+  ) 
+fig <- fig %>%
+  add_trace(
+    r = c(39, 28, 8, 7, 28, 39),
+    theta = c('A','B','C', 'D', 'E', 'A'),
+    name = 'Group A'
+  ) 
+fig <- fig %>%
+  add_trace(
+    r = c(1.5, 10, 39, 31, 15, 1.5),
+    theta = c('A','B','C', 'D', 'E', 'A'),
+    name = 'Group B'
+  ) 
+fig <- fig %>%
+  layout(
+    polar = list(
+      radialaxis = list(
+        visible = T,
+        range = c(0,50)
+      )
+    )
+  )
+
+fig
+```
+
+## 动态图
+
+```{r}
+library(gapminder)
+
+df <- gapminder 
+fig <- df %>%
+  plot_ly(
+    x = ~gdpPercap, 
+    y = ~lifeExp, 
+    size = ~pop, 
+    color = ~continent, 
+    frame = ~year, 
+    text = ~country, 
+    hoverinfo = "text",
+    type = 'scatter',
+    mode = 'markers'
+  )
+fig <- fig %>% layout(
+    xaxis = list(
+      type = "log"
+    )
+  )
+
+fig
+```
+
+## 3D图
+```{r}
+# custom grid style
+axx <- list(
+  gridcolor='rgb(255, 255, 255)',
+  zerolinecolor='rgb(255, 255, 255)',
+  showbackground=TRUE,
+  backgroundcolor='rgb(230, 230,230)'
+)
+
+# individual plots
+fig1 <- plot_ly(z = ~volcano, scene='scene1') 
+fig1 <- fig1 %>% add_surface(showscale=FALSE)
+
+fig2 <- plot_ly(z = ~volcano, scene='scene2') 
+fig2 <- fig2 %>% add_surface(showscale=FALSE)
+
+fig3 <- plot_ly(z = ~volcano, scene='scene3') 
+fig3 <- fig3 %>% add_surface(showscale=FALSE)
+
+fig4 <- plot_ly(z = ~volcano, scene='scene4') 
+fig4 <- fig4 %>% add_surface(showscale=FALSE)
+
+# subplot and define scene
+fig <- subplot(fig1, fig2, fig3, fig4) 
+fig <- fig %>% layout(title = "3D Subplots",
+                      scene = list(domain=list(x=c(0,0.5),y=c(0.5,1)),
+                                   xaxis=axx, yaxis=axx, zaxis=axx,
+                                   aspectmode='cube'),
+                      scene2 = list(domain=list(x=c(0.5,1),y=c(0.5,1)),
+                                    xaxis=axx, yaxis=axx, zaxis=axx,
+                                    aspectmode='cube'),
+                      scene3 = list(domain=list(x=c(0,0.5),y=c(0,0.5)),
+                                    xaxis=axx, yaxis=axx, zaxis=axx,
+                                    aspectmode='cube'),
+                      scene4 = list(domain=list(x=c(0.5,1),y=c(0,0.5)),
+                                    xaxis=axx, yaxis=axx, zaxis=axx,
+                                    aspectmode='cube'))
+
+fig
+# fig <- plot_ly(midwest, x = ~percollege, color = ~state, type = "box")
+# fig
+```
+
+## 多层3D图
+```{r}
+z <- c(
+  c(8.83,8.89,8.81,8.87,8.9,8.87),
+  c(8.89,8.94,8.85,8.94,8.96,8.92),
+  c(8.84,8.9,8.82,8.92,8.93,8.91),
+  c(8.79,8.85,8.79,8.9,8.94,8.92),
+  c(8.79,8.88,8.81,8.9,8.95,8.92),
+  c(8.8,8.82,8.78,8.91,8.94,8.92),
+  c(8.75,8.78,8.77,8.91,8.95,8.92),
+  c(8.8,8.8,8.77,8.91,8.95,8.94),
+  c(8.74,8.81,8.76,8.93,8.98,8.99),
+  c(8.89,8.99,8.92,9.1,9.13,9.11),
+  c(8.97,8.97,8.91,9.09,9.11,9.11),
+  c(9.04,9.08,9.05,9.25,9.28,9.27),
+  c(9,9.01,9,9.2,9.23,9.2),
+  c(8.99,8.99,8.98,9.18,9.2,9.19),
+  c(8.93,8.97,8.97,9.18,9.2,9.18)
+)
+dim(z) <- c(15,6)
+z2 <- z + 1
+z3 <- z - 1
+
+fig <- plot_ly(showscale = FALSE)
+fig <- fig %>% add_surface(z = ~z)
+fig <- fig %>% add_surface(z = ~z2, opacity = 0.98)
+fig <- fig %>% add_surface(z = ~z3, opacity = 0.98)
+
+fig
+
+```
+

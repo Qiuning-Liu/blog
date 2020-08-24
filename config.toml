@@ -24,14 +24,14 @@ enableEmoji = true
   weight = 100
   url = "/"
 
-  [[menu.main]]
-  name = "Blog"
-  weight = 200
-  identifier = "Blog"
-  url = "/post/"
+ #[[menu.main]]
+  #name = "Blog"
+  #weight = 200
+  #identifier = "Blog"
+  #url = "/post/"
 
-  [[menu.main]]
-  name = "Notebook"
+ [[menu.main]]
+ name = "Notebook"
   weight = 300
   identifier = "notebook"
   url = "/notebook/"
@@ -40,7 +40,7 @@ enableEmoji = true
   name = "About"
   weight = 400
   identifier = "about"
-  url = "/about/"
+  url = "/about.html"
 
 [params]
     title = "Hi，我是秋宁"
@@ -48,7 +48,7 @@ enableEmoji = true
     description = "总要记得 仰望星空"
     profilePicture = "images/logo.jpg"
     keywords = ""
-    favicon = ""
+    favicon = "favicon.ico"
     customCss = []
     mainSections = ["post"]
     # options for highlight.js (version, additional languages, and theme)

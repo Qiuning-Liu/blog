@@ -199,16 +199,9 @@ categories:
 ~# [1] 1.0 1.8 2.6 3.4 4.2 5.0</code></pre>
 <pre class="r"><code>&gt; # .First &lt;- function() if(interactive()) x11()
 &gt; </code></pre>
-<pre class="r"><code>&gt; # 
-&gt; interaction(data$性别, data$学历)
-~# [1] 男.本科       男.硕士研究生 女.博士研究生 女.本科       女.本科      
-~# 6 Levels: 男.本科 女.本科 男.博士研究生 女.博士研究生 ... 女.硕士研究生
-&gt; # factor; : where f:g is similar to interaction(f, g, sep = &#39;:&#39;) when f and g are
-&gt; # factors.
-&gt; 
-&gt; data$性别:data$学历
-~# [1] 男:本科       男:硕士研究生 女:博士研究生 女:本科       女:本科      
-~# 6 Levels: 男:本科 男:博士研究生 男:硕士研究生 女:本科 ... 女:硕士研究生</code></pre>
+<pre class="r"><code>&gt; # # interaction(data$性别, data$学历) #factor; : where f:g is similar to
+&gt; # interaction(f, g, sep = &#39;:&#39;) when f and g are factors.  data$性别:data$学历
+&gt; </code></pre>
 <pre class="r"><code>&gt; # 将output传出到文件 sink(file = &#39;xx.txt&#39;) i=c(1,2,3) i sink()
 &gt; </code></pre>
 <p>数组</p>
@@ -299,4 +292,95 @@ categories:
 ~# 4: b  1
 ~# 5: b  3
 ~# 6: b  6</code></pre>
+</div>
+<div id="purrr" class="section level2">
+<h2>purrr</h2>
+<pre class="r"><code>&gt; library(purrr)
+&gt; safemean &lt;- safely(mean)  # 将函数包进safely里，以返回结果和报错
+&gt; 
+&gt; x &lt;- list(c(1, 2, 3), c(8, 9, 10), &quot;a&quot;)
+&gt; 
+&gt; y &lt;- x %&gt;% map(safemean)  # 可对list，通过map来使用此函数
+&gt; 
+&gt; y %&gt;% transpose()  # 使用transpose整理结果，将resutl和error分别放道一个list里
+~# $result
+~# $result[[1]]
+~# [1] 2
+~# 
+~# $result[[2]]
+~# [1] 9
+~# 
+~# $result[[3]]
+~# [1] NA
+~# 
+~# 
+~# $error
+~# $error[[1]]
+~# NULL
+~# 
+~# $error[[2]]
+~# NULL
+~# 
+~# $error[[3]]
+~# NULL</code></pre>
+<p>与safely相似的两个函数：possibly和quietly</p>
+<pre class="r"><code>&gt; x %&gt;% map(possibly(mean, otherwise = NA_real_))  # 返回结果，且可通过otherwise指定报错结果返回值
+~# [[1]]
+~# [1] 2
+~# 
+~# [[2]]
+~# [1] 9
+~# 
+~# [[3]]
+~# [1] NA
+&gt; 
+&gt; x %&gt;% map(quietly(mean))  # 返回结果、warning、message
+~# [[1]]
+~# [[1]]$result
+~# [1] 2
+~# 
+~# [[1]]$output
+~# [1] &quot;&quot;
+~# 
+~# [[1]]$warnings
+~# character(0)
+~# 
+~# [[1]]$messages
+~# character(0)
+~# 
+~# 
+~# [[2]]
+~# [[2]]$result
+~# [1] 9
+~# 
+~# [[2]]$output
+~# [1] &quot;&quot;
+~# 
+~# [[2]]$warnings
+~# character(0)
+~# 
+~# [[2]]$messages
+~# character(0)
+~# 
+~# 
+~# [[3]]
+~# [[3]]$result
+~# [1] NA
+~# 
+~# [[3]]$output
+~# [1] &quot;&quot;
+~# 
+~# [[3]]$warnings
+~# [1] &quot;参数不是数值也不是逻辑值：回覆NA&quot;
+~# 
+~# [[3]]$messages
+~# character(0)</code></pre>
+<p>游走函数</p>
+<p>使用<code>pwalk</code>来保存图片,pwalk是多个映射参数的游走函数walk的变体</p>
+<pre class="r"><code>&gt; 
+&gt; # library(ggplot2) mtcars=data.frame(mtcars) plots &lt;- mtcars %&gt;% split(.$cyl) %&gt;%
+&gt; # map(~ggplot(., aes(mpg, wt)) + geom_point()) paths &lt;-
+&gt; # stringr::str_c(names(plots), &#39;.pdf&#39;) pwalk(list(paths, plots), ggsave, path =
+&gt; # &#39;C:\\Users\\Qiuning\\OneDrive\\blog\\blog\\content\\notebook&#39; )
+&gt; </code></pre>
 </div>

@@ -1,0 +1,851 @@
+---
+title: "R与数据库"
+author: "秋宁"
+date: '2020-07-17'
+slug: r与数据库
+tags: []
+categories:
+- R
+- 数据库
+---
+
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<div id="预备数据库相关工具包" class="section level3">
+<h3>预备数据库相关工具包：</h3>
+<p><a href="https://cran.r-project.org/web/packages/DBI/vignettes/DBI.html">DBI</a>：提供与多种数据库公共接口，DBI stands for DataBase Interface.</p>
+<p>数据库后端包：依据数据库类型选择相应的后端管理包</p>
+<ul>
+<li><p>RMariaDB connects to MySQL and MariaDB</p></li>
+<li><p><a href="https://cran.r-project.org/web/packages/RMySQL/RMySQL.pdf">RMySQL</a> connects to MySQL</p></li>
+<li><p>RPostgres connects to Postgres and Redshift.</p></li>
+<li><p><a href="https://cran.r-project.org/web/packages/RSQLite/vignettes/RSQLite.html">RSQLite</a> embeds a SQLite database.</p></li>
+<li><p>odbc connects to many commercial databases via the open database connectivity protocol.</p></li>
+<li><p>bigrquery connects to Google’s BigQuery.</p></li>
+</ul>
+<p>智鼎的远程数据库类型为MySQL，因此需要安装RMySQL或RMariaDB后端包；对于个人本地使用的数据库，推荐SQLite（相比MySQL更加轻量）。<br />
+SQLite的库是基于文件的，不需要通过单独的数据库服务器来运行，它可以进程在使用它的应用中。在R平台上，通过RSQLite &amp; DBI，可实现创建库、读取库、查询、提数等操作。<br />
+但它只允许一个用户写入与读出，同时也不支持用户权限的管理等，如果有这些需求推荐其他数据库类型。</p>
+<p>另外它是完全开源的：<br />
+SQLite source code is in the public-domain and is free to everyone to use for any purpose.</p>
+<blockquote>
+<p>简单来说，SQLITE功能简约，小型化，追求最大磁盘效率；MYSQL功能全面，综合化，追求最大并发效率。如果只是单机上用的，数据量不是很大，需要方便移植或者需要频繁读/写磁盘文件的话，就用SQLite比较合适；如果是要满足多用户同时访问，或者是网站访问量比较大是使用MYSQL比较合适。</p>
+</blockquote>
+</div>
+<div id="其他工具包" class="section level3">
+<h3>其他工具包：</h3>
+<p><a href="https://cran.r-project.org/web/packages/dbplyr/vignettes/dbplyr.html">dbplyr</a></p>
+<p>熟悉dplyr语法的使用者可以通过dbplyr，以用于data.frame的方式来对数据库进行操作，如使用filter、left_join、mutate等函数。<br />
+虽然很方便，但还是推荐学一下SQL语句，有些高级的操作无法通过此包来实现。</p>
+</div>
+</div>
+<div id="dbi初级使用" class="section level2">
+<h2>DBI初级使用</h2>
+<p>连接数据库</p>
+<pre class="r"><code>&gt; # setwd(&#39;C:\\Users\\Qiuning\\OneDrive\\blog\\blog\\content\\notebook&#39;)
+&gt; library(DBI)
+&gt; 
+&gt; # con &lt;- dbConnect(RSQLite::SQLite(), dbname = &#39;credentialsforR&#39;)
+&gt; con &lt;- dbConnect(RSQLite::SQLite(), &quot;:memory:&quot;)
+&gt; con
+~# &lt;SQLiteConnection&gt;
+~#   Path: :memory:
+~#   Extensions: TRUE</code></pre>
+<p>查看库中的数据结构</p>
+<pre class="r"><code>&gt; # The function dbListTables() displays the names tables in the remote database.
+&gt; dbListTables(con)  # table name
+~# character(0)</code></pre>
+<p>写入数据</p>
+<pre class="r"><code>&gt; dbWriteTable(con, &quot;mtcars&quot;, mtcars)  # 写入数据
+&gt; dbListFields(con, &quot;mtcars&quot;)  # column names
+~#  [1] &quot;mpg&quot;  &quot;cyl&quot;  &quot;disp&quot; &quot;hp&quot;   &quot;drat&quot; &quot;wt&quot;   &quot;qsec&quot; &quot;vs&quot;   &quot;am&quot;   &quot;gear&quot;
+~# [11] &quot;carb&quot;</code></pre>
+<p>从数据库读取数据</p>
+<pre class="r"><code>&gt; dbReadTable(con, &quot;mtcars&quot;)  # 读取整个表格
+~#     mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+~# 1  21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
+~# 2  21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
+~# 3  22.8   4 108.0  93 3.85 2.320 18.61  1  1    4    1
+~# 4  21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
+~# 5  18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
+~# 6  18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
+~# 7  14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
+~# 8  24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
+~# 9  22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
+~# 10 19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+~# 11 17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+~# 12 16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+~# 13 17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+~# 14 15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
+~# 15 10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
+~# 16 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+~# 17 14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
+~# 18 32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+~# 19 30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+~# 20 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+~# 21 21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+~# 22 15.5   8 318.0 150 2.76 3.520 16.87  0  0    3    2
+~# 23 15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2
+~# 24 13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
+~# 25 19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
+~# 26 27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+~# 27 26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+~# 28 30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
+~# 29 15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4
+~# 30 19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+~# 31 15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8
+~# 32 21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2
+&gt; 
+&gt; df &lt;- dbGetQuery(con, &quot;SELECT * FROM mtcars WHERE cyl = 4&quot;)  # 提取数据，使用此方法会一次性提取符合条件的数据，
+&gt; # 如果在大型数据库中操作，要注意释放与之相关的资源，数据量过于庞大会使得一次性占用内存过多，因此分批取数更加的科学
+&gt; df
+~#     mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+~# 1  22.8   4 108.0  93 3.85 2.320 18.61  1  1    4    1
+~# 2  24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
+~# 3  22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
+~# 4  32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+~# 5  30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+~# 6  33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+~# 7  21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+~# 8  27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+~# 9  26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+~# 10 30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
+~# 11 21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2
+&gt; # Behind the scences, dbGetQuery() is a combination of dbSendQuery(), dbFetch()
+&gt; # and dbClearResult()
+&gt; res &lt;- dbSendQuery(con, &quot;SELECT * FROM mtcars WHERE cyl = 4&quot;)
+&gt; df &lt;- dbFetch(res)
+&gt; dbClearResult(res)
+&gt; df
+~#     mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+~# 1  22.8   4 108.0  93 3.85 2.320 18.61  1  1    4    1
+~# 2  24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
+~# 3  22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
+~# 4  32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+~# 5  30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+~# 6  33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+~# 7  21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+~# 8  27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+~# 9  26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+~# 10 30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
+~# 11 21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
+<p>分批读取数据（用于大数据集）</p>
+<pre class="r"><code>&gt; # When working with large datasets it might be smart to fetch the result step by
+&gt; # step, not in one big chunk. This can be implemented with a while loop and a
+&gt; # dbFetch() call that defines a maximum number of records to retrieve per fetch,
+&gt; # here n = 5. There are eleven cars with four cylinders, so we expect two chunks
+&gt; # of five rows and one chuck of one row:
+&gt; 
+&gt; res &lt;- dbSendQuery(con, &quot;SELECT * FROM mtcars WHERE cyl = 4&quot;)
+&gt; while (!dbHasCompleted(res)) {
++     chunk &lt;- dbFetch(res, n = 5)
++     print(nrow(chunk))
++ }
+~# [1] 5
+~# [1] 5
+~# [1] 1</code></pre>
+<p>关闭与数据库的连接</p>
+<pre class="r"><code>&gt; # Again, call dbClearResult() and disconnect from the connection with
+&gt; # dbDisconnect(), when you are done:
+&gt; 
+&gt; dbClearResult(res)
+&gt; dbDisconnect(con)</code></pre>
+</div>
+<div id="如何使用rsqlite" class="section level2">
+<h2>如何使用RSQLite</h2>
+<p>建立本地库，将名字传送给<code>dbConnect()</code>:</p>
+<p>建立临时库, use either "" (for an on-disk database) or “:memory:” or “<a href="file::memory" class="uri">file::memory</a>:” (for a in-memory database). This database will be automatically deleted when you disconnect from it.</p>
+<pre class="r"><code>&gt; 
+&gt; mydb &lt;- dbConnect(RSQLite::SQLite(), &quot;&quot;)
+&gt; dbDisconnect(mydb)</code></pre>
+<p>存入数据，使用<code>dbWriteTable()</code></p>
+<pre class="r"><code>&gt; mydb &lt;- dbConnect(RSQLite::SQLite(), &quot;&quot;)
+&gt; dbWriteTable(mydb, &quot;mtcars&quot;, mtcars)
+&gt; dbWriteTable(mydb, &quot;iris&quot;, iris)
+&gt; dbListTables(mydb)
+~# [1] &quot;iris&quot;   &quot;mtcars&quot;</code></pre>
+<p>查询与提取，使用<code>dbGetQuery</code>可以直接执行发送给数据库的查询命令</p>
+<pre class="r"><code>&gt; dbGetQuery(mydb, &quot;SELECT * FROM mtcars LIMIT 5&quot;)  # limit是限制提取多少条数据
+~#    mpg cyl disp  hp drat    wt  qsec vs am gear carb
+~# 1 21.0   6  160 110 3.90 2.620 16.46  0  1    4    4
+~# 2 21.0   6  160 110 3.90 2.875 17.02  0  1    4    4
+~# 3 22.8   4  108  93 3.85 2.320 18.61  1  1    4    1
+~# 4 21.4   6  258 110 3.08 3.215 19.44  1  0    3    1
+~# 5 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2</code></pre>
+<pre class="r"><code>&gt; dbGetQuery(mydb, &quot;SELECT * FROM iris WHERE \&quot;Sepal.Length\&quot; &lt; 4.6&quot;)  # 表中的变量名需要以双引号括起来
+~#   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+~# 1          4.4         2.9          1.4         0.2  setosa
+~# 2          4.3         3.0          1.1         0.1  setosa
+~# 3          4.4         3.0          1.3         0.2  setosa
+~# 4          4.5         2.3          1.3         0.3  setosa
+~# 5          4.4         3.2          1.3         0.2  setosa</code></pre>
+<pre class="r"><code>&gt; dbGetQuery(mydb, &quot;SELECT * FROM iris WHERE \&quot;Sepal.Length\&quot; &lt; :x&quot;, params = list(x = 4.6))  # 参数化查询
+~#   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+~# 1          4.4         2.9          1.4         0.2  setosa
+~# 2          4.3         3.0          1.1         0.1  setosa
+~# 3          4.4         3.0          1.3         0.2  setosa
+~# 4          4.5         2.3          1.3         0.3  setosa
+~# 5          4.4         3.2          1.3         0.2  setosa</code></pre>
+<p>批处理：当查询的数据量很大，不适用于当前内存时，需要使用<code>dbSendQuery()</code>, <code>dbFetch()</code> and <code>dbClearResults()</code> 来分批获得查询到的数据。
+其中，<code>dbHasCompleted()</code> 用于查询语句操作是否完成即所有所需数据是否已经全部取回</p>
+<pre class="r"><code>&gt; rs &lt;- dbSendQuery(mydb, &quot;SELECT * FROM mtcars&quot;)
+&gt; while (!dbHasCompleted(rs)) {
++     df &lt;- dbFetch(rs, n = 10)
++     print(nrow(df))
++ }
+~# [1] 10
+~# [1] 10
+~# [1] 10
+~# [1] 2
+&gt; # &gt; [1] 10 &gt; [1] 10 &gt; [1] 10 &gt; [1] 2
+&gt; dbClearResult(rs)</code></pre>
+<p>多重参数化查询：使用同一个查询方法，但使用不同的参数来查询数据时，使用<code>dbBind()</code>来设置该参数</p>
+<p>单一参数：</p>
+<pre class="r"><code>&gt; rs &lt;- dbSendQuery(mydb, &quot;SELECT * FROM iris WHERE \&quot;Sepal.Length\&quot; &lt; :x&quot;)
+&gt; dbBind(rs, params = list(x = 4.5))
+&gt; nrow(dbFetch(rs))
+~# [1] 4
+&gt; # &gt; [1] 4
+&gt; dbBind(rs, params = list(x = 4))
+&gt; nrow(dbFetch(rs))
+~# [1] 0
+&gt; # &gt; [1] 0
+&gt; dbClearResult(rs)</code></pre>
+<p>多参数：</p>
+<pre class="r"><code>&gt; rs &lt;- dbSendQuery(mydb, &quot;SELECT * FROM iris WHERE \&quot;Sepal.Length\&quot; = :x&quot;)  # 发送查询命令，但不执行
+&gt; dbBind(rs, params = list(x = seq(4, 4.4, by = 0.1)))
+&gt; nrow(dbFetch(rs))  # 使用dbFetch来执行发送的命令
+~# [1] 4
+&gt; # &gt; [1] 4
+&gt; dbClearResult(rs)</code></pre>
+<!-- 删除、执行等 -->
+<!-- ```{r} -->
+<!-- dbExecute(mydb, 'DELETE FROM iris WHERE "Sepal.Width" < 4') # 删除xx小于4的数据 -->
+<!-- dbGetQuery(mydb, 'SELECT * FROM iris') # 提取此数据查看 -->
+<!-- #> [1] 0 -->
+<!-- rs <- dbSendStatement(mydb, 'DELETE FROM iris WHERE "Sepal.Length" < :x') # 发送语句，使用dbBind来批量执行 -->
+<!-- dbBind(rs, params = list(x = 5.5)) -->
+<!-- dbGetRowsAffected(rs) # 查询语句所影响的数据行数 -->
+<!-- #> [1] 4 -->
+<!-- dbClearResult(rs) # 关闭rs链接,释放与之相关的资源 -->
+<!-- ``` -->
+<!-- ```{r eval=FALSE, include=FALSE} -->
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbIsValid(dbObj, ...) -->
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbBind(res, params, ...) -->
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbFetch( -->
+<!--   res, -->
+<!--   n = -1, -->
+<!--   ..., -->
+<!--   row.names = pkgconfig::get_config("RSQLite::row.names.query", FALSE) -->
+<!-- ) -->
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbClearResult(res, ...) -->
+<!-- ## 查询列信息 -->
+<!-- dbColumnInfo(rs) -->
+<!-- ## 查询语句所影响的数据行数 -->
+<!-- dbGetRowsAffected(res, ...) -->
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbGetRowCount(res, ...) -->
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbHasCompleted(res, ...) -->
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbGetStatement(res, ...) -->
+<!-- ``` -->
+</div>
+<div id="使用dbplyrdplyr语句实现sql语句" class="section level2">
+<h2>使用dbplyr（dplyr语句实现SQL语句）</h2>
+<p>此时dbplyr相当于是dplyr连接数据库的后端</p>
+<div id="入门" class="section level3">
+<h3>入门</h3>
+<p>连接数据库</p>
+<pre class="r"><code>&gt; library(dbplyr)
+&gt; 
+&gt; con &lt;- DBI::dbConnect(RSQLite::SQLite(), dbname = &quot;:memory:&quot;)  # 与DBI的连接方式相同</code></pre>
+<p>使用<code>copy_to</code>写入数据</p>
+<pre class="r"><code>&gt; flights &lt;- copy_to(con, nycflights13::flights, &quot;flights&quot;, temporary = FALSE, indexes = list(c(&quot;year&quot;, 
++     &quot;month&quot;, &quot;day&quot;), &quot;carrier&quot;, &quot;tailnum&quot;, &quot;dest&quot;))</code></pre>
+<p>使用<code>tbl</code>取出表格</p>
+<pre class="r"><code>&gt; flights_db &lt;- tbl(con, &quot;flights&quot;)</code></pre>
+<p>从表格中选择部分列</p>
+<pre class="r"><code>&gt; flights_db %&gt;% select(year:day, dep_delay, arr_delay)
+~# # Source:   lazy query [?? x 5]
+~# # Database: sqlite 3.30.1 [:memory:]
+~#     year month   day dep_delay arr_delay
+~#    &lt;int&gt; &lt;int&gt; &lt;int&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+~#  1  2013     1     1         2        11
+~#  2  2013     1     1         4        20
+~#  3  2013     1     1         2        33
+~#  4  2013     1     1        -1       -18
+~#  5  2013     1     1        -6       -25
+~#  6  2013     1     1        -4        12
+~#  7  2013     1     1        -5        19
+~#  8  2013     1     1        -3       -14
+~#  9  2013     1     1        -3        -8
+~# 10  2013     1     1        -2         8
+~# # ... with more rows</code></pre>
+<p>filter</p>
+<pre class="r"><code>&gt; flights_db %&gt;% filter(dep_delay &gt; 240)
+~# # Source:   lazy query [?? x 19]
+~# # Database: sqlite 3.30.1 [:memory:]
+~#     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+~#    &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;          &lt;int&gt;
+~#  1  2013     1     1      848           1835       853     1001           1950
+~#  2  2013     1     1     1815           1325       290     2120           1542
+~#  3  2013     1     1     1842           1422       260     1958           1535
+~#  4  2013     1     1     2115           1700       255     2330           1920
+~#  5  2013     1     1     2205           1720       285       46           2040
+~#  6  2013     1     1     2343           1724       379      314           1938
+~#  7  2013     1     2     1332            904       268     1616           1128
+~#  8  2013     1     2     1412            838       334     1710           1147
+~#  9  2013     1     2     1607           1030       337     2003           1355
+~# 10  2013     1     2     2131           1512       379     2340           1741
+~# # ... with more rows, and 11 more variables: arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;,
+~# #   flight &lt;int&gt;, tailnum &lt;chr&gt;, origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;,
+~# #   distance &lt;dbl&gt;, hour &lt;dbl&gt;, minute &lt;dbl&gt;, time_hour &lt;dbl&gt;</code></pre>
+<p>分组求均值</p>
+<pre class="r"><code>&gt; flights_db %&gt;% group_by(dest) %&gt;% summarise(delay = mean(dep_time))
+~# # Source:   lazy query [?? x 2]
+~# # Database: sqlite 3.30.1 [:memory:]
+~#    dest  delay
+~#    &lt;chr&gt; &lt;dbl&gt;
+~#  1 ABQ   2006.
+~#  2 ACK   1033.
+~#  3 ALB   1627.
+~#  4 ANC   1635.
+~#  5 ATL   1293.
+~#  6 AUS   1521.
+~#  7 AVL   1175.
+~#  8 BDL   1490.
+~#  9 BGR   1690.
+~# 10 BHM   1944.
+~# # ... with more rows</code></pre>
+<p>以上操作，dplyr并不会真正把数据取回到本地，除非使用<code>collect()</code>拉取</p>
+<pre class="r"><code>&gt; ## 打印后，没有具体数据
+&gt; tailnum_delay_db &lt;- flights_db %&gt;% group_by(tailnum) %&gt;% summarise(delay = mean(arr_delay), 
++     n = n()) %&gt;% arrange(desc(delay)) %&gt;% filter(n &gt; 100)
+&gt; 
+&gt; tailnum_delay_db %&gt;% show_query()
+~# &lt;SQL&gt;
+~# SELECT *
+~# FROM (SELECT *
+~# FROM (SELECT `tailnum`, AVG(`arr_delay`) AS `delay`, COUNT() AS `n`
+~# FROM `flights`
+~# GROUP BY `tailnum`)
+~# ORDER BY `delay` DESC)
+~# WHERE (`n` &gt; 100.0)</code></pre>
+<p>拉取数据</p>
+<pre class="r"><code>&gt; tailnum_delay &lt;- tailnum_delay_db %&gt;% collect()
+&gt; tailnum_delay
+~# # A tibble: 1,201 x 3
+~#    tailnum delay     n
+~#    &lt;chr&gt;   &lt;dbl&gt; &lt;int&gt;
+~#  1 N11119   30.3   148
+~#  2 N16919   29.9   251
+~#  3 N14998   27.9   230
+~#  4 N15910   27.6   280
+~#  5 N13123   26.0   121
+~#  6 N11192   25.9   154
+~#  7 N14950   25.3   219
+~#  8 N21130   25.0   126
+~#  9 N24128   24.9   129
+~# 10 N22971   24.7   230
+~# # ... with 1,191 more rows</code></pre>
+</div>
+<div id="dplyr语句与sql语句的互翻" class="section level3">
+<h3>dplyr语句与SQL语句的互翻</h3>
+<ul>
+<li>select() and mutate() modify the SELECT clause:</li>
+</ul>
+<pre class="r"><code>&gt; flights %&gt;% select(contains(&quot;delay&quot;)) %&gt;% show_query()  # 通过show_query，可以方便的看到背后执行的SQL语句
+~# &lt;SQL&gt;
+~# SELECT `dep_delay`, `arr_delay`
+~# FROM `flights`
+&gt; ## &lt;SQL&gt; SELECT `dep_delay`, `arr_delay` FROM `nycflights13::flights`</code></pre>
+<pre class="r"><code>&gt; flights %&gt;% select(distance, air_time) %&gt;% mutate(speed = distance/(air_time/60)) %&gt;% 
++     show_query()
+~# &lt;SQL&gt;
+~# SELECT `distance`, `air_time`, `distance` / (`air_time` / 60.0) AS `speed`
+~# FROM `flights`</code></pre>
+<ul>
+<li>filter() generates a WHERE clause:</li>
+</ul>
+<pre class="r"><code>&gt; flights %&gt;% filter(month == 1, day == 1) %&gt;% show_query()
+~# &lt;SQL&gt;
+~# SELECT *
+~# FROM `flights`
+~# WHERE ((`month` = 1.0) AND (`day` = 1.0))
+&gt; ## &lt;SQL&gt; SELECT * FROM `nycflights13::flights` WHERE ((`month` = 1.0) AND (`day` =
+&gt; ## 1.0))</code></pre>
+<ul>
+<li>arrange() generates an ORDER BY clause:</li>
+</ul>
+<pre class="r"><code>&gt; flights %&gt;% arrange(carrier, desc(arr_delay)) %&gt;% show_query()
+~# &lt;SQL&gt;
+~# SELECT *
+~# FROM `flights`
+~# ORDER BY `carrier`, `arr_delay` DESC
+&gt; ## &lt;SQL&gt; SELECT * FROM `nycflights13::flights` ORDER BY `carrier`, `arr_delay`
+&gt; ## DESC</code></pre>
+<ul>
+<li>summarise() and group_by() work together to generate a GROUP BY clause:</li>
+</ul>
+<pre class="r"><code>&gt; flights %&gt;% group_by(month, day) %&gt;% summarise(delay = mean(dep_delay)) %&gt;% show_query()
+~# &lt;SQL&gt;
+~# SELECT `month`, `day`, AVG(`dep_delay`) AS `delay`
+~# FROM `flights`
+~# GROUP BY `month`, `day`
+&gt; ## &lt;SQL&gt; SELECT `month`, `day`, AVG(`dep_delay`) AS `delay` FROM
+&gt; ## `nycflights13::flights` GROUP BY `month`, `day`</code></pre>
+</div>
+</div>
+<div id="实例应用" class="section level2">
+<h2>实例应用</h2>
+<p>由于智鼎使用的是MySQL数据库，所以需要安装和加载<code>RMySQL</code>包。</p>
+<p>连接智鼎测试环境的MySQL远程数据库</p>
+<pre class="r"><code>&gt; library(RMySQL)
+&gt; library(tidyverse)
+&gt; con &lt;- DBI::dbConnect(RMySQL::MySQL(),
++                       driver = &quot;MySQLDriver&quot;,
++                       dbname=&#39;zhiding_test&#39;,
++                       # user = rstudioapi::askForPassword(&quot;Database user&quot;),
++                       # password = rstudioapi::askForPassword(&quot;Database password&quot;),
++                       user = &#39;blade&#39;,
++                       password = &#39;1234&#39;,
++                       host = &quot;192.168.1.110&quot;,
++                       port = 3306,
++                       DBMSencoding=&quot;utf-8&quot;)</code></pre>
+<p>在提取数据之前需先设定数据库的编码格式为<code>utf8</code></p>
+<pre class="r"><code>&gt; rs &lt;- dbSendQuery(con, &quot;SET NAMES utf8&quot;)
+&gt; dbClearResult(rs)  # 在提数完成后，不要忘记关闭此链接
+~# [1] TRUE</code></pre>
+<p>使用DBI中的函数+SQL语句取数据</p>
+<pre class="r"><code>&gt; mapid &lt;- dbGetQuery(con, &quot;SELECT * FROM s_zhiding_tools WHERE toolName LIKE &#39;%MAP%&#39;&quot;)
+&gt; mapid
+~#    tool_id   toolCode                                            toolName
+~# 1      320     MAP-M2                                MAP鑱屼笟鎬ф牸娴嬮獙
+~# 2      376   MAP001-G                                MAP鑱屼笟鎬ф牸娴嬮獙
+~# 3      377   MAP002-G                                MAP鑱屼笟鎬ф牸娴嬮獙
+~# 4      378  MAP003-GS                                MAP鑱屼笟鎬ф牸娴嬮獙
+~# 5      382  MAP004-MT                                MAP鑱屼笟鎬ф牸娴嬮獙
+~# 6      390 MAP005-MTS                                MAP鑱屼笟鎬ф牸娴嬮獙
+~# 7      391  MAP006-HP                                MAP鑱屼笟鎬ф牸娴嬮獙
+~# 8      392   MAP007-M                                MAP鑱屼笟鎬ф牸娴嬮獙
+~# 9      397     MAP-RE                   MAP Occupational Personality Test
+~# 10     398  MAPR-001G MAP鑱屼笟鎬ф牸娴嬮獙锛堝ぇ瀛︾敓閫氱敤鐗圴2.0锛\x89
+~# 11     585 MAPR-002MT        MAP鑱屼笟鎬ф牸娴嬮獙锛堢鍩圭敓鐗圴2.0锛\x89
+~# 12     586   MAPR-003          MAP鑱屼笟鎬ф牸娴嬮獙锛堥€氱敤鐗圴2.0锛\x89
+~# 13     587 MAPR-004HP    MAP鑱屼笟鎬ф牸娴嬮獙锛堥珮娼滀汉鎵嶇増V2.0锛\x89
+~# 14     588  MAPR-005M        MAP鑱屼笟鎬ф牸娴嬮獙锛堢鐞嗚€呯増V2.0锛\x89
+~#    status examTime planScore
+~# 1       0       40         1
+~# 2       0       40         1
+~# 3       0       30         1
+~# 4       0       30         1
+~# 5       0       30         1
+~# 6       0       30         1
+~# 7       0       40         1
+~# 8       0       40         1
+~# 9       0       40        NA
+~# 10      0       30        NA
+~# 11      0       30        NA
+~# 12      0       40        NA
+~# 13      0       40        NA
+~# 14      0       40        NA
+~#                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   toolDesc
+~# 1  &lt;br /&gt;\r\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;涓€銆佹湰娴嬮獙鍏\xb1&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107閬\x93&lt;/b&gt;&lt;/span&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;40鍒嗛挓&lt;/b&gt;&lt;/span&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;\r\n&lt;br /&gt;\r\n浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/b&gt;&lt;/span&gt;鐨勯€夐」銆\x82&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/b&gt;&lt;/span&gt;銆\x82&lt;br /&gt;\r\n&lt;br /&gt;\r\n&lt;span style=&quot;text-transform: none; background-color: rgb(255,255,255); text-indent: 0px; font: 16px/20pt Arial, Verdana, sans-serif; white-space: normal; letter-spacing: normal; color: rgb(0,0,0); word-spacing: 0px; -webkit-text-stroke-width: 0px&quot;&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 2                      &lt;br /&gt;&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;涓€銆佹湰娴嬮獙鍏\xb1&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107閬\x93&lt;/b&gt;&lt;/span&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;40鍒嗛挓&lt;/b&gt;&lt;/span&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;&lt;br /&gt;浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/b&gt;&lt;/span&gt;鐨勯€夐」銆\x82&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/b&gt;&lt;/span&gt;銆\x82&lt;br /&gt;&lt;br /&gt;&lt;span style=&quot;text-transform: none; background-color: rgb(255,255,255); text-indent: 0px; font: 16px/20pt Arial, Verdana, sans-serif; white-space: normal; letter-spacing: normal; color: rgb(0,0,0); word-spacing: 0px; -webkit-text-stroke-width: 0px&quot;&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 3  &lt;br /&gt;\r\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;涓€銆佹湰娴嬮獙鍏\xb1&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107閬\x93&lt;/b&gt;&lt;/span&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;30鍒嗛挓&lt;/b&gt;&lt;/span&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;\r\n&lt;br /&gt;\r\n浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/b&gt;&lt;/span&gt;鐨勯€夐」銆\x82&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/b&gt;&lt;/span&gt;銆\x82&lt;br /&gt;\r\n&lt;br /&gt;\r\n&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 4  &lt;br /&gt;\r\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;涓€銆佹湰娴嬮獙鍏\xb1&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107閬\x93&lt;/b&gt;&lt;/span&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;30鍒嗛挓&lt;/b&gt;&lt;/span&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;\r\n&lt;br /&gt;\r\n浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/b&gt;&lt;/span&gt;鐨勯€夐」銆\x82&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/b&gt;&lt;/span&gt;銆\x82&lt;br /&gt;\r\n&lt;br /&gt;\r\n&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 5  &lt;br /&gt;\r\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;涓€銆佹湰娴嬮獙鍏\xb1&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107閬\x93&lt;/b&gt;&lt;/span&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;30鍒嗛挓&lt;/b&gt;&lt;/span&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;\r\n&lt;br /&gt;\r\n浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/b&gt;&lt;/span&gt;鐨勯€夐」銆\x82&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/b&gt;&lt;/span&gt;銆\x82&lt;br /&gt;\r\n&lt;br /&gt;\r\n&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 6  &lt;br /&gt;\r\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;涓€銆佹湰娴嬮獙鍏\xb1&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107閬\x93&lt;/b&gt;&lt;/span&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;30鍒嗛挓&lt;/b&gt;&lt;/span&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;\r\n&lt;br /&gt;\r\n浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/b&gt;&lt;/span&gt;鐨勯€夐」銆\x82&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/b&gt;&lt;/span&gt;銆\x82&lt;br /&gt;\r\n&lt;br /&gt;\r\n&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 7            &lt;br /&gt;\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;涓€銆佹湰娴嬮獙鍏\xb1&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107閬\x93&lt;/b&gt;&lt;/span&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;40鍒嗛挓&lt;/b&gt;&lt;/span&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;\n&lt;br /&gt;\n浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/b&gt;&lt;/span&gt;鐨勯€夐」銆\x82&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/b&gt;&lt;/span&gt;銆\x82&lt;br /&gt;\n&lt;br /&gt;\n&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 8                      &lt;br /&gt;&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;涓€銆佹湰娴嬮獙鍏\xb1&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107閬\x93&lt;/b&gt;&lt;/span&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;40鍒嗛挓&lt;/b&gt;&lt;/span&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;&lt;br /&gt;浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/b&gt;&lt;/span&gt;鐨勯€夐」銆\x82&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/b&gt;&lt;/span&gt;銆\x82&lt;br /&gt;&lt;br /&gt;&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 9                                                                                                                                                                                                                                                                                                                    1. Please answer frankly. Your responses are collected for research use only, and your personal information will be kept confidential. You may download your own personality report for free after finishing this test.&lt;br /&gt;\n&lt;br /&gt;\n2. There are 107 questions in this test. The test time is about 40 minutes. Please pay attention to the countdown on the interface.&lt;br /&gt;\n&lt;br /&gt;\n3. Each question comprises three statements of facts or opinions in work settings. In your case, please choose which statement is most true of you and which is least like you. Note that the two statements chosen cannot be the same.&lt;br /&gt;\n&lt;br /&gt;\n4. Before submitting the test, you can click the &amp;quot;previous&amp;quot; button to revise your answers.
+~# 10                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         涓€銆佹湰娴嬮獙鍏\xb1&lt;strong&gt;107閬\x93&lt;/strong&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;strong&gt;30鍒嗛挓&lt;/strong&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;&lt;br /&gt;浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;strong&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/strong&gt;鐨勯€夐」銆\x82&lt;strong&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/strong&gt;銆\x82&lt;br /&gt;&lt;br /&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82
+~# 11                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         涓€銆佹湰娴嬮獙鍏\xb1&lt;strong&gt;107閬\x93&lt;/strong&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;strong&gt;30鍒嗛挓&lt;/strong&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;&lt;br /&gt;浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;strong&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/strong&gt;鐨勯€夐」銆\x82&lt;strong&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/strong&gt;銆\x82&lt;br /&gt;&lt;br /&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82
+~# 12                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         涓€銆佹湰娴嬮獙鍏\xb1&lt;strong&gt;107閬\x93&lt;/strong&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;strong&gt;40鍒嗛挓&lt;/strong&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;&lt;br /&gt;浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;strong&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/strong&gt;鐨勯€夐」銆\x82&lt;strong&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/strong&gt;銆\x82&lt;br /&gt;&lt;br /&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82
+~# 13                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         涓€銆佹湰娴嬮獙鍏\xb1&lt;strong&gt;107閬\x93&lt;/strong&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;strong&gt;40鍒嗛挓&lt;/strong&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;&lt;br /&gt;浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;strong&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/strong&gt;鐨勯€夐」銆\x82&lt;strong&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/strong&gt;銆\x82&lt;br /&gt;&lt;br /&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82
+~# 14                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         涓€銆佹湰娴嬮獙鍏\xb1&lt;strong&gt;107閬\x93&lt;/strong&gt;棰橈紝浣滅瓟鍙傝€冩椂闂翠负&lt;strong&gt;40鍒嗛挓&lt;/strong&gt;锛屾椂闂磋鍙傝€冩湰鐣岄潰涓婄殑鍊掕鏃躲€\x82&lt;br /&gt;&lt;br /&gt;浜屻€佹祴楠岄鐩槸鍦ㄥ伐浣滄儏鏅笅瀵逛竴浜涗簨瀹炴垨瑙傜偣鐨勯檲杩帮紝璇蜂綘鏍规嵁鑷繁鍦ㄥ伐浣滄儏鏅殑鐘舵€佷笅锛屼粠姣忛亾棰樼洰涓瑼銆丅銆丆涓変釜閫夐」涓€夊嚭&lt;strong&gt;涓€涓渶绗﹀悎浣犺嚜宸便€佷竴涓渶涓嶇鍚堜綘鑷繁&lt;/strong&gt;鐨勯€夐」銆\x82&lt;strong&gt;娉ㄦ剰浜岃€呬笉鍙互閫夋嫨鍚屼竴涓€夐」&lt;/strong&gt;銆\x82&lt;br /&gt;&lt;br /&gt;涓夈€佹湰娴嬮獙浜ゅ嵎鍓嶏紝鍙互鐐瑰嚮&amp;ldquo;涓婁竴棰\x98&amp;rdquo;杩涜淇敼銆\x82
+~#    toolType          createDate          modifyDate questionCount toolIntro
+~# 1        13 2015-06-29 13:00:38 2015-06-29 13:00:38           107          
+~# 2        13 2015-07-02 13:57:31 2015-07-02 13:57:31           107          
+~# 3        13 2015-07-02 14:01:20 2015-07-02 14:01:20           107          
+~# 4        13 2015-07-02 14:03:19 2015-07-02 14:03:19           107          
+~# 5        13 2015-07-02 14:08:31 2015-07-02 14:08:31           107          
+~# 6        13 2015-07-02 14:11:14 2015-07-02 14:11:14           107          
+~# 7        13 2015-07-02 14:18:24 2015-07-02 14:18:24           107          
+~# 8        13 2015-07-02 14:21:00 2015-07-02 14:21:00           107          
+~# 9        13 2018-10-30 15:37:24 2018-11-21 15:44:03           107          
+~# 10       13 2018-06-25 14:39:31 2019-07-15 10:55:04           107          
+~# 11       13 2019-07-15 10:55:10 2019-07-15 10:55:10           107      &lt;NA&gt;
+~# 12       13 2019-07-15 10:55:18 2019-07-15 10:55:18           107      &lt;NA&gt;
+~# 13       13 2019-07-15 10:55:25 2019-07-15 10:55:25           107      &lt;NA&gt;
+~# 14       13 2019-07-15 10:55:34 2019-07-15 10:55:34           107      &lt;NA&gt;
+~#    toolDifficult isRandom isParaller answerRate answerMiniTime optionRate
+~# 1           &lt;NA&gt;        0          0         88             12         60
+~# 2           &lt;NA&gt;        0          0         88             12         60
+~# 3           &lt;NA&gt;        0          0         88             12         60
+~# 4           &lt;NA&gt;        0          0         88             12         60
+~# 5           &lt;NA&gt;        0          0         88             12         60
+~# 6           &lt;NA&gt;        0          0         88             12         60
+~# 7           &lt;NA&gt;        0          0         88             12         60
+~# 8           &lt;NA&gt;        0          0         88             12         60
+~# 9                    &lt;NA&gt;          0         88             12         60
+~# 10                      0          0         88             12         60
+~# 11          &lt;NA&gt;        0          0         88             12         60
+~# 12          &lt;NA&gt;        0          0         88             12         60
+~# 13          &lt;NA&gt;        0          0         88             12         60
+~# 14          &lt;NA&gt;        0          0         88             12         60
+~#    polygraphMark reportType_id toolImage
+~# 1             10            NA      &lt;NA&gt;
+~# 2             10            NA      &lt;NA&gt;
+~# 3             10            NA      &lt;NA&gt;
+~# 4             10            NA      &lt;NA&gt;
+~# 5             10            NA      &lt;NA&gt;
+~# 6             10            NA      &lt;NA&gt;
+~# 7             10            NA      &lt;NA&gt;
+~# 8             10            NA      &lt;NA&gt;
+~# 9             10            NA          
+~# 10            10            NA          
+~# 11            10            NA      &lt;NA&gt;
+~# 12            10            NA      &lt;NA&gt;
+~# 13            10            NA      &lt;NA&gt;
+~# 14            10            NA      &lt;NA&gt;
+~#                                           foreign_name producttype_id
+~# 1                                 MAP鑱屼笟鎬ф牸娴嬮獙              5
+~# 2                                 MAP鑱屼笟鎬ф牸娴嬮獙              5
+~# 3                MAP鑱屼笟鎬ф牸娴嬮獙(澶у鐢熺増锛\x89              5
+~# 4            MAP鑱屼笟鎬ф牸娴嬮獙锛堝ぇ瀛︾敓绠€鐗堬級              5
+~# 5                MAP鑱屼笟鎬ф牸娴嬮獙锛堢鍩圭敓锛\x89              5
+~# 6             MAP鑱屼笟鎬ф牸娴嬮獙锛堢鍩圭敓绠€鐗堬級              5
+~# 7             MAP鑱屼笟鎬ф牸娴嬮獙(楂樻綔浜烘墠鐗\x88)              5
+~# 8                   MAP鑱屼笟鎬ф牸娴嬮獙(绠＄悊鑰呯増)              5
+~# 9                    MAP Occupational Personality Test              5
+~# 10 MAP鑱屼笟鎬ф牸娴嬮獙锛堝ぇ瀛︾敓閫氱敤鐗圴2.0锛\x89              5
+~# 11        MAP鑱屼笟鎬ф牸娴嬮獙锛堢鍩圭敓鐗圴2.0锛\x89              5
+~# 12          MAP鑱屼笟鎬ф牸娴嬮獙锛堥€氱敤鐗圴2.0锛\x89              5
+~# 13    MAP鑱屼笟鎬ф牸娴嬮獙锛堥珮娼滀汉鎵嶇増V2.0锛\x89              5
+~# 14        MAP鑱屼笟鎬ф牸娴嬮獙锛堢鐞嗚€呯増V2.0锛\x89              5
+~#    product_price                                   descUrl category
+~# 1            500                                                 99
+~# 2            200   http://192.168.1.252:9091/tools/MAP.pdf        1
+~# 3            150   http://192.168.1.252:9091/tools/MAP.pdf       34
+~# 4            150   http://192.168.1.252:9091/tools/MAP.pdf       99
+~# 5            200   http://192.168.1.252:9091/tools/MAP.pdf       47
+~# 6            200   http://192.168.1.252:9091/tools/MAP.pdf       99
+~# 7            200   http://192.168.1.252:9091/tools/MAP.pdf       27
+~# 8            300   http://192.168.1.252:9091/tools/MAP.pdf       10
+~# 9            200                                                 99
+~# 10           150 http://192.168.1.252:9091/tools/MAPAS.pdf       99
+~# 11           200 http://192.168.1.252:9091/tools/MAPAS.pdf       99
+~# 12           200                                                 99
+~# 13           200 http://192.168.1.252:9091/tools/MAPAS.pdf       99
+~# 14           300 http://192.168.1.252:9091/tools/MAPAS.pdf       99</code></pre>
+<p>使用dbplyr方式取相同的数据</p>
+<pre class="r"><code>&gt; 
+&gt; tble &lt;- con %&gt;% tbl(&quot;s_zhiding_tools&quot;) %&gt;% filter(str_detect(toolName, &quot;MAP&quot;)) %&gt;% 
++     collect()
+&gt; con %&gt;% tbl(&quot;s_zhiding_tools&quot;) %&gt;% filter(str_detect(toolName, &quot;MAP&quot;)) %&gt;% show_query()
+~# &lt;SQL&gt;
+~# SELECT *
+~# FROM `s_zhiding_tools`
+~# WHERE (`toolName` REGEXP &#39;MAP&#39;)
+&gt; tble
+~# # A tibble: 14 x 26
+~#    tool_id toolCode toolName status examTime planScore toolDesc toolType
+~#      &lt;dbl&gt; &lt;chr&gt;    &lt;chr&gt;    &lt;chr&gt;     &lt;int&gt;     &lt;dbl&gt; &lt;chr&gt;    &lt;chr&gt;   
+~#  1     320 MAP-M2   &quot;MAP鑱屼笟~ 0            40         1 &quot;&lt;br /&gt;~ 13      
+~#  2     376 MAP001-G &quot;MAP鑱屼笟~ 0            40         1 &quot;&lt;br /&gt;~ 13      
+~#  3     377 MAP002-G &quot;MAP鑱屼笟~ 0            30         1 &quot;&lt;br /&gt;~ 13      
+~#  4     378 MAP003-~ &quot;MAP鑱屼笟~ 0            30         1 &quot;&lt;br /&gt;~ 13      
+~#  5     382 MAP004-~ &quot;MAP鑱屼笟~ 0            30         1 &quot;&lt;br /&gt;~ 13      
+~#  6     390 MAP005-~ &quot;MAP鑱屼笟~ 0            30         1 &quot;&lt;br /&gt;~ 13      
+~#  7     391 MAP006-~ &quot;MAP鑱屼笟~ 0            40         1 &quot;&lt;br /&gt;~ 13      
+~#  8     392 MAP007-M &quot;MAP鑱屼笟~ 0            40         1 &quot;&lt;br /&gt;~ 13      
+~#  9     397 MAP-RE   &quot;MAP Oc~ 0            40        NA &quot;1. Ple~ 13      
+~# 10     398 MAPR-00~ &quot;MAP鑱屼笟~ 0            30        NA &quot;涓€銆佹湰娴~ 13      
+~# 11     585 MAPR-00~ &quot;MAP鑱屼笟~ 0            30        NA &quot;涓€銆佹湰娴~ 13      
+~# 12     586 MAPR-003 &quot;MAP鑱屼笟~ 0            40        NA &quot;涓€銆佹湰娴~ 13      
+~# 13     587 MAPR-00~ &quot;MAP鑱屼笟~ 0            40        NA &quot;涓€銆佹湰娴~ 13      
+~# 14     588 MAPR-00~ &quot;MAP鑱屼笟~ 0            40        NA &quot;涓€銆佹湰娴~ 13      
+~# # ... with 18 more variables: createDate &lt;chr&gt;, modifyDate &lt;chr&gt;,
+~# #   questionCount &lt;int&gt;, toolIntro &lt;chr&gt;, toolDifficult &lt;chr&gt;, isRandom &lt;chr&gt;,
+~# #   isParaller &lt;chr&gt;, answerRate &lt;dbl&gt;, answerMiniTime &lt;int&gt;, optionRate &lt;dbl&gt;,
+~# #   polygraphMark &lt;dbl&gt;, reportType_id &lt;dbl&gt;, toolImage &lt;chr&gt;,
+~# #   foreign_name &lt;chr&gt;, producttype_id &lt;int&gt;, product_price &lt;dbl&gt;,
+~# #   descUrl &lt;chr&gt;, category &lt;int&gt;</code></pre>
+<p>可以看到，此时取出的数据中文格式还是乱的，可再转一次utf8编码<br />
+然后数据就可以正常显示了：</p>
+<pre class="r"><code>&gt; # 一个简单的转编码的函数，也可使用enc2utf8()
+&gt; enc28 &lt;- function(x) {
++     if (is.character(x)) {
++         Encoding(x) &lt;- &quot;UTF-8&quot;
++         x
++     } else {
++         x
++     }
++ }
+&gt; 
+&gt; tble &lt;- as.data.frame(map(tble, enc28))
+&gt; tble
+~#    tool_id   toolCode                            toolName status examTime
+~# 1      320     MAP-M2                     MAP职业性格测验      0       40
+~# 2      376   MAP001-G                     MAP职业性格测验      0       40
+~# 3      377   MAP002-G                     MAP职业性格测验      0       30
+~# 4      378  MAP003-GS                     MAP职业性格测验      0       30
+~# 5      382  MAP004-MT                     MAP职业性格测验      0       30
+~# 6      390 MAP005-MTS                     MAP职业性格测验      0       30
+~# 7      391  MAP006-HP                     MAP职业性格测验      0       40
+~# 8      392   MAP007-M                     MAP职业性格测验      0       40
+~# 9      397     MAP-RE   MAP Occupational Personality Test      0       40
+~# 10     398  MAPR-001G MAP职业性格测验（大学生通用版V2.0）      0       30
+~# 11     585 MAPR-002MT     MAP职业性格测验（管培生版V2.0）      0       30
+~# 12     586   MAPR-003       MAP职业性格测验（通用版V2.0）      0       40
+~# 13     587 MAPR-004HP   MAP职业性格测验（高潜人才版V2.0）      0       40
+~# 14     588  MAPR-005M     MAP职业性格测验（管理者版V2.0）      0       40
+~#    planScore
+~# 1          1
+~# 2          1
+~# 3          1
+~# 4          1
+~# 5          1
+~# 6          1
+~# 7          1
+~# 8          1
+~# 9         NA
+~# 10        NA
+~# 11        NA
+~# 12        NA
+~# 13        NA
+~# 14        NA
+~#                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            toolDesc
+~# 1  &lt;br /&gt;\r\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;一、本测验共&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107道&lt;/b&gt;&lt;/span&gt;题，作答参考时间为&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;40分钟&lt;/b&gt;&lt;/span&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;\r\n&lt;br /&gt;\r\n二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;一个最符合你自己、一个最不符合你自己&lt;/b&gt;&lt;/span&gt;的选项。&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;注意二者不可以选择同一个选项&lt;/b&gt;&lt;/span&gt;。&lt;br /&gt;\r\n&lt;br /&gt;\r\n&lt;span style=&quot;text-transform: none; background-color: rgb(255,255,255); text-indent: 0px; font: 16px/20pt Arial, Verdana, sans-serif; white-space: normal; letter-spacing: normal; color: rgb(0,0,0); word-spacing: 0px; -webkit-text-stroke-width: 0px&quot;&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 2                      &lt;br /&gt;&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;一、本测验共&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107道&lt;/b&gt;&lt;/span&gt;题，作答参考时间为&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;40分钟&lt;/b&gt;&lt;/span&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;&lt;br /&gt;二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;一个最符合你自己、一个最不符合你自己&lt;/b&gt;&lt;/span&gt;的选项。&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;注意二者不可以选择同一个选项&lt;/b&gt;&lt;/span&gt;。&lt;br /&gt;&lt;br /&gt;&lt;span style=&quot;text-transform: none; background-color: rgb(255,255,255); text-indent: 0px; font: 16px/20pt Arial, Verdana, sans-serif; white-space: normal; letter-spacing: normal; color: rgb(0,0,0); word-spacing: 0px; -webkit-text-stroke-width: 0px&quot;&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 3  &lt;br /&gt;\r\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;一、本测验共&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107道&lt;/b&gt;&lt;/span&gt;题，作答参考时间为&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;30分钟&lt;/b&gt;&lt;/span&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;\r\n&lt;br /&gt;\r\n二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;一个最符合你自己、一个最不符合你自己&lt;/b&gt;&lt;/span&gt;的选项。&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;注意二者不可以选择同一个选项&lt;/b&gt;&lt;/span&gt;。&lt;br /&gt;\r\n&lt;br /&gt;\r\n&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 4  &lt;br /&gt;\r\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;一、本测验共&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107道&lt;/b&gt;&lt;/span&gt;题，作答参考时间为&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;30分钟&lt;/b&gt;&lt;/span&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;\r\n&lt;br /&gt;\r\n二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;一个最符合你自己、一个最不符合你自己&lt;/b&gt;&lt;/span&gt;的选项。&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;注意二者不可以选择同一个选项&lt;/b&gt;&lt;/span&gt;。&lt;br /&gt;\r\n&lt;br /&gt;\r\n&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 5  &lt;br /&gt;\r\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;一、本测验共&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107道&lt;/b&gt;&lt;/span&gt;题，作答参考时间为&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;30分钟&lt;/b&gt;&lt;/span&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;\r\n&lt;br /&gt;\r\n二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;一个最符合你自己、一个最不符合你自己&lt;/b&gt;&lt;/span&gt;的选项。&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;注意二者不可以选择同一个选项&lt;/b&gt;&lt;/span&gt;。&lt;br /&gt;\r\n&lt;br /&gt;\r\n&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 6  &lt;br /&gt;\r\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;一、本测验共&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107道&lt;/b&gt;&lt;/span&gt;题，作答参考时间为&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;30分钟&lt;/b&gt;&lt;/span&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;\r\n&lt;br /&gt;\r\n二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;一个最符合你自己、一个最不符合你自己&lt;/b&gt;&lt;/span&gt;的选项。&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;注意二者不可以选择同一个选项&lt;/b&gt;&lt;/span&gt;。&lt;br /&gt;\r\n&lt;br /&gt;\r\n&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 7            &lt;br /&gt;\n&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;一、本测验共&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107道&lt;/b&gt;&lt;/span&gt;题，作答参考时间为&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;40分钟&lt;/b&gt;&lt;/span&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;\n&lt;br /&gt;\n二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;一个最符合你自己、一个最不符合你自己&lt;/b&gt;&lt;/span&gt;的选项。&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;注意二者不可以选择同一个选项&lt;/b&gt;&lt;/span&gt;。&lt;br /&gt;\n&lt;br /&gt;\n&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 8                      &lt;br /&gt;&lt;div&gt;&lt;span style=&quot;font-size: 16px&quot;&gt;&lt;span style=&quot;line-height: 20pt&quot;&gt;一、本测验共&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;107道&lt;/b&gt;&lt;/span&gt;题，作答参考时间为&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;40分钟&lt;/b&gt;&lt;/span&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;&lt;br /&gt;二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;一个最符合你自己、一个最不符合你自己&lt;/b&gt;&lt;/span&gt;的选项。&lt;span style=&quot;color: #0000ff&quot;&gt;&lt;b&gt;注意二者不可以选择同一个选项&lt;/b&gt;&lt;/span&gt;。&lt;br /&gt;&lt;br /&gt;&lt;span style=&quot;white-space: normal; text-transform: none; word-spacing: 0px; color: rgb(0,0,0); font: 16px/20pt Arial, Verdana, sans-serif; letter-spacing: normal; background-color: rgb(255,255,255); text-indent: 0px; -webkit-text-stroke-width: 0px&quot;&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+~# 9                                                                                                                                                             1. Please answer frankly. Your responses are collected for research use only, and your personal information will be kept confidential. You may download your own personality report for free after finishing this test.&lt;br /&gt;\n&lt;br /&gt;\n2. There are 107 questions in this test. The test time is about 40 minutes. Please pay attention to the countdown on the interface.&lt;br /&gt;\n&lt;br /&gt;\n3. Each question comprises three statements of facts or opinions in work settings. In your case, please choose which statement is most true of you and which is least like you. Note that the two statements chosen cannot be the same.&lt;br /&gt;\n&lt;br /&gt;\n4. Before submitting the test, you can click the &amp;quot;previous&amp;quot; button to revise your answers.
+~# 10                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         一、本测验共&lt;strong&gt;107道&lt;/strong&gt;题，作答参考时间为&lt;strong&gt;30分钟&lt;/strong&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;&lt;br /&gt;二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;strong&gt;一个最符合你自己、一个最不符合你自己&lt;/strong&gt;的选项。&lt;strong&gt;注意二者不可以选择同一个选项&lt;/strong&gt;。&lt;br /&gt;&lt;br /&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。
+~# 11                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         一、本测验共&lt;strong&gt;107道&lt;/strong&gt;题，作答参考时间为&lt;strong&gt;30分钟&lt;/strong&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;&lt;br /&gt;二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;strong&gt;一个最符合你自己、一个最不符合你自己&lt;/strong&gt;的选项。&lt;strong&gt;注意二者不可以选择同一个选项&lt;/strong&gt;。&lt;br /&gt;&lt;br /&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。
+~# 12                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         一、本测验共&lt;strong&gt;107道&lt;/strong&gt;题，作答参考时间为&lt;strong&gt;40分钟&lt;/strong&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;&lt;br /&gt;二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;strong&gt;一个最符合你自己、一个最不符合你自己&lt;/strong&gt;的选项。&lt;strong&gt;注意二者不可以选择同一个选项&lt;/strong&gt;。&lt;br /&gt;&lt;br /&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。
+~# 13                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         一、本测验共&lt;strong&gt;107道&lt;/strong&gt;题，作答参考时间为&lt;strong&gt;40分钟&lt;/strong&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;&lt;br /&gt;二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;strong&gt;一个最符合你自己、一个最不符合你自己&lt;/strong&gt;的选项。&lt;strong&gt;注意二者不可以选择同一个选项&lt;/strong&gt;。&lt;br /&gt;&lt;br /&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。
+~# 14                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         一、本测验共&lt;strong&gt;107道&lt;/strong&gt;题，作答参考时间为&lt;strong&gt;40分钟&lt;/strong&gt;，时间请参考本界面上的倒计时。&lt;br /&gt;&lt;br /&gt;二、测验题目是在工作情景下对一些事实或观点的陈述，请你根据自己在工作情景的状态下，从每道题目中A、B、C三个选项中选出&lt;strong&gt;一个最符合你自己、一个最不符合你自己&lt;/strong&gt;的选项。&lt;strong&gt;注意二者不可以选择同一个选项&lt;/strong&gt;。&lt;br /&gt;&lt;br /&gt;三、本测验交卷前，可以点击&amp;ldquo;上一题&amp;rdquo;进行修改。
+~#    toolType          createDate          modifyDate questionCount toolIntro
+~# 1        13 2015-06-29 13:00:38 2015-06-29 13:00:38           107          
+~# 2        13 2015-07-02 13:57:31 2015-07-02 13:57:31           107          
+~# 3        13 2015-07-02 14:01:20 2015-07-02 14:01:20           107          
+~# 4        13 2015-07-02 14:03:19 2015-07-02 14:03:19           107          
+~# 5        13 2015-07-02 14:08:31 2015-07-02 14:08:31           107          
+~# 6        13 2015-07-02 14:11:14 2015-07-02 14:11:14           107          
+~# 7        13 2015-07-02 14:18:24 2015-07-02 14:18:24           107          
+~# 8        13 2015-07-02 14:21:00 2015-07-02 14:21:00           107          
+~# 9        13 2018-10-30 15:37:24 2018-11-21 15:44:03           107          
+~# 10       13 2018-06-25 14:39:31 2019-07-15 10:55:04           107          
+~# 11       13 2019-07-15 10:55:10 2019-07-15 10:55:10           107      &lt;NA&gt;
+~# 12       13 2019-07-15 10:55:18 2019-07-15 10:55:18           107      &lt;NA&gt;
+~# 13       13 2019-07-15 10:55:25 2019-07-15 10:55:25           107      &lt;NA&gt;
+~# 14       13 2019-07-15 10:55:34 2019-07-15 10:55:34           107      &lt;NA&gt;
+~#    toolDifficult isRandom isParaller answerRate answerMiniTime optionRate
+~# 1           &lt;NA&gt;        0          0         88             12         60
+~# 2           &lt;NA&gt;        0          0         88             12         60
+~# 3           &lt;NA&gt;        0          0         88             12         60
+~# 4           &lt;NA&gt;        0          0         88             12         60
+~# 5           &lt;NA&gt;        0          0         88             12         60
+~# 6           &lt;NA&gt;        0          0         88             12         60
+~# 7           &lt;NA&gt;        0          0         88             12         60
+~# 8           &lt;NA&gt;        0          0         88             12         60
+~# 9                    &lt;NA&gt;          0         88             12         60
+~# 10                      0          0         88             12         60
+~# 11          &lt;NA&gt;        0          0         88             12         60
+~# 12          &lt;NA&gt;        0          0         88             12         60
+~# 13          &lt;NA&gt;        0          0         88             12         60
+~# 14          &lt;NA&gt;        0          0         88             12         60
+~#    polygraphMark reportType_id toolImage                        foreign_name
+~# 1             10            NA      &lt;NA&gt;                     MAP职业性格测验
+~# 2             10            NA      &lt;NA&gt;                     MAP职业性格测验
+~# 3             10            NA      &lt;NA&gt;          MAP职业性格测验(大学生版）
+~# 4             10            NA      &lt;NA&gt;       MAP职业性格测验（大学生简版）
+~# 5             10            NA      &lt;NA&gt;           MAP职业性格测验（管培生）
+~# 6             10            NA      &lt;NA&gt;       MAP职业性格测验（管培生简版）
+~# 7             10            NA      &lt;NA&gt;         MAP职业性格测验(高潜人才版)
+~# 8             10            NA      &lt;NA&gt;           MAP职业性格测验(管理者版)
+~# 9             10            NA             MAP Occupational Personality Test
+~# 10            10            NA           MAP职业性格测验（大学生通用版V2.0）
+~# 11            10            NA      &lt;NA&gt;     MAP职业性格测验（管培生版V2.0）
+~# 12            10            NA      &lt;NA&gt;       MAP职业性格测验（通用版V2.0）
+~# 13            10            NA      &lt;NA&gt;   MAP职业性格测验（高潜人才版V2.0）
+~# 14            10            NA      &lt;NA&gt;     MAP职业性格测验（管理者版V2.0）
+~#    producttype_id product_price                                   descUrl
+~# 1               5           500                                          
+~# 2               5           200   http://192.168.1.252:9091/tools/MAP.pdf
+~# 3               5           150   http://192.168.1.252:9091/tools/MAP.pdf
+~# 4               5           150   http://192.168.1.252:9091/tools/MAP.pdf
+~# 5               5           200   http://192.168.1.252:9091/tools/MAP.pdf
+~# 6               5           200   http://192.168.1.252:9091/tools/MAP.pdf
+~# 7               5           200   http://192.168.1.252:9091/tools/MAP.pdf
+~# 8               5           300   http://192.168.1.252:9091/tools/MAP.pdf
+~# 9               5           200                                          
+~# 10              5           150 http://192.168.1.252:9091/tools/MAPAS.pdf
+~# 11              5           200 http://192.168.1.252:9091/tools/MAPAS.pdf
+~# 12              5           200                                          
+~# 13              5           200 http://192.168.1.252:9091/tools/MAPAS.pdf
+~# 14              5           300 http://192.168.1.252:9091/tools/MAPAS.pdf
+~#    category
+~# 1        99
+~# 2         1
+~# 3        34
+~# 4        99
+~# 5        47
+~# 6        99
+~# 7        27
+~# 8        10
+~# 9        99
+~# 10       99
+~# 11       99
+~# 12       99
+~# 13       99
+~# 14       99</code></pre>
+<p>第二个示例，读取398版本的MAP的高阶维度数据</p>
+<pre class="r"><code>&gt; res &lt;- dbSendQuery(con, &quot;SELECT * FROM s_exam_advance_result WHERE tool_id =398 AND moduleType=2&quot;)
+&gt; chunk &lt;- dbFetch(res, n = 500) %&gt;% map(., enc28) %&gt;% as.data.frame(.)
+&gt; dbClearResult(res)  #关闭链接
+~# [1] TRUE
+&gt; head(chunk)
+~#   ar_result_id activityPerson_id tool_id solution_id module_id moduleName
+~# 1         8735              4023     398          NA      1918   推进执行
+~# 2         8736              4023     398          NA      1919   计划组织
+~# 3         8737              4023     398          NA      1920       决策
+~# 4         8738              4023     398          NA      1921   开放创新
+~# 5         8739              4023     398          NA      1922   学习研究
+~# 6         8740              4023     398          NA      1923   系统思维
+~#         z_mark t_mark   p_mark p_modified level ComprehensiveScore z_avgMark
+~# 1 -1.202229916     58 11.46372         11     D                  0        NA
+~# 2  0.267152302     73 60.53241         61     C                  0        NA
+~# 3  0.938873847     79 82.61022         83     B                  0        NA
+~# 4  1.263141382     83 89.67308         89     B                  0        NA
+~# 5  0.007423796     70 50.29616         50     C                  0        NA
+~# 6 -1.236732615     58 10.80932         11     D                  0        NA
+~#   z_totalMark t_totalMark p_totalMark Recommendation moduleType JobMatching
+~# 1          NA          NA          NA           &lt;NA&gt;          2      低匹配
+~# 2          NA          NA          NA           &lt;NA&gt;          2      中匹配
+~# 3          NA          NA          NA           &lt;NA&gt;          2    中高匹配
+~# 4          NA          NA          NA           &lt;NA&gt;          2    中高匹配
+~# 5          NA          NA          NA           &lt;NA&gt;          2      中匹配
+~# 6          NA          NA          NA           &lt;NA&gt;          2      低匹配
+~#   totalMark t_avgMark         mark tenPoint
+~# 1        NA        NA -0.695472398        3
+~# 2        NA        NA  0.167202188        6
+~# 3        NA        NA  0.527945184        7
+~# 4        NA        NA  0.963448878        8
+~# 5        NA        NA  0.004869919        6
+~# 6        NA        NA -0.712708840        3</code></pre>
+<pre class="r"><code>&gt; chunkx &lt;- chunk[, c(2, 6, 7)]
+&gt; 
+&gt; ## 剔除存在多条数据的人员的重复数据
+&gt; chunkx$id &lt;- paste(chunk$activityPerson_id, chunk$moduleName, sep = &quot;-&quot;)
+&gt; chunkx &lt;- chunkx[!duplicated(chunkx$id), ]
+&gt; 
+&gt; ## 整理为常见的数据格式，即一行为一个人的数据
+&gt; keypersondata &lt;- tidyr::spread(chunkx[, 1:3], moduleName, z_mark)
+&gt; 
+&gt; head(keypersondata)
+~#   activityPerson_id        变革    变革创新 财务管理岗     财务类 参与型领导
+~# 1              4023  1.50074896  1.44147641  -0.139651 -0.3616885  -1.467342
+~# 2              4401  1.51618793  1.64844419         NA -0.5905849         NA
+~# 3              4402  0.07307648 -0.06045497         NA -1.0358974         NA
+~# 4             15444  1.83052904  2.19876809         NA -1.4960399         NA
+~# 5             15628 -0.61275867 -0.49188002         NA -0.6195509         NA
+~# 6             16270  1.70193495  1.67558416         NA -0.9571860         NA
+~#     沉着务实   成就导向    创新者   分析思维    沟通力  沟通协调   关系管理
+~# 1 -1.1808585  0.9526819 0.6873755  0.4976550 0.7182544 0.8857249  1.1057805
+~# 2 -1.8860527 -0.7152986 1.0269052  0.4443446        NA 0.6345720 -0.5907273
+~# 3 -0.8110480  0.1910437 1.0571594 -0.6272261        NA 0.5152563 -0.7197647
+~# 4 -0.2920333 -0.2889035 1.7395610 -0.2903446        NA 0.6022309 -0.4294965
+~# 5 -0.7006367  0.1522161 0.6604925 -0.5677341        NA 0.3165080 -0.7661379
+~# 6 -1.5856295 -1.5620371 0.6067071  0.4908751        NA 1.1861282  0.3996283
+~#     关注局部   关注人际  关注任务   关注整体 行政管理岗     行政类 合作型领导
+~# 1 -0.4738812 -0.6227523 1.2524086 -0.7817392  -1.182737 -1.3352953 -0.3466716
+~# 2  0.6894182 -1.3910039 1.0794445 -1.1485616         NA -0.7976368         NA
+~# 3 -0.8479073 -0.5534136 0.4130787  0.8280135         NA -0.8133009         NA
+~# 4  0.5496613 -1.5638400 0.4999960 -0.8389775         NA -1.4896824         NA
+~# 5 -1.5816309 -0.7262497 0.1523269  0.8994560         NA -0.6305107         NA
+~# 6  0.4797829 -0.6331841 0.1523269 -0.9104200         NA -1.2779986         NA
+~#       合作者   积极进取    积极乐观  激励他人   计划组织     技术类 技术研发岗
+~# 1 -0.4878823         NA -0.53105271 0.2012136  0.2671523  0.4050859 -0.2878577
+~# 2 -1.4565755 -0.7152986  0.09867603 0.6107876 -0.2464578  0.5018206         NA
+~# 3 -0.5468981  0.1910437  0.09867603 0.9629095 -1.1292216 -0.8610550         NA
+~# 4 -2.2198681 -0.2889035 -0.01665939 0.5136076 -0.6799158  0.3887551         NA
+~# 5 -0.5573542  0.1522161 -0.01665939 1.1939055 -0.8974925 -0.3164241         NA
+~# 6 -1.1115255 -1.5620371 -0.53570136 0.5927072 -0.1522525 -0.5398332         NA
+~#     坚持原则      决策 决策开放度   决策视角    决策依据    开放创新
+~# 1 -1.2478052 0.9388738  1.1097714  0.1939261 -0.72458529  1.26314138
+~# 2 -1.3871450 1.2269037  1.5468003 -1.1387501  0.08438028  1.52906216
+~# 3  0.1921706 0.3831006 -0.1921812 -0.1251040  0.44412497  0.13271387
+~# 4 -1.9616616 0.6908705  2.2521214 -0.9084739  0.44412497  1.87717813
+~# 5  0.2609418 0.6267855 -0.2964159  0.8793235  0.26425262 -0.01904128
+~# 6 -1.0877128 0.8363424  1.4026090 -0.3926054  0.26425262  0.93745143
+~#      开拓进取     客服类   客户导向 客户服务岗 客户营销岗    乐于思考
+~# 1  1.29811880 -0.8366821 -1.7467590 -0.9679468   1.158008 -1.03181167
+~# 2 -1.59006025 -0.5873348 -0.7455707         NA         NA -0.03118785
+~# 3  0.14054986 -0.5900145  0.4839859         NA         NA  1.43853384
+~# 4 -1.04050192 -1.5592418 -1.4520901         NA         NA -0.51788784
+~# 5  0.04311665 -0.1160820  0.9547508         NA         NA  1.56403488
+~# 6 -1.42437671 -1.1500160 -0.7957829         NA         NA  0.09431318
+~#      灵活适应   灵活应变  耐心细致      评价者   人际沟通   人际交往   人际协作
+~# 1  1.08050657  0.8327220 0.5123012  0.10773949  0.7563915  1.5088035 -1.3173374
+~# 2  0.53247391  1.3797757        NA  0.11858071 -0.2846289 -1.3478677 -1.5257637
+~# 3  0.03520645 -0.1746531        NA  0.43739656 -0.4550804 -0.4316544  0.2390741
+~# 4  0.86983429  1.7373256        NA -0.09554933 -0.3691129 -1.2480318 -2.3101046
+~# 5 -0.25209720 -0.2612256        NA  0.97192859 -0.4393081 -0.7644500  0.3940095
+~# 6  0.32900341  0.8979968        NA  0.40567359  0.5886783 -0.2954753 -1.5619493
+~#       设计类   社交从容 市场策划类    适应能力    守规自律  速度偏好
+~# 1  0.9826793  1.4555976  1.8968089  0.89459497 -1.43933864 0.6672318
+~# 2  1.7303273 -0.9008472  1.0826565  0.64245567 -1.40949231 1.5255375
+~# 3  0.5682696 -0.9688064  0.3922327 -0.95721273 -0.06677551 0.5497861
+~# 4  1.5574161 -0.4620370  1.5131274  1.66840419 -1.91289297 0.5497861
+~# 5 -0.1469991 -1.0848724 -0.2451017 -0.70178473  0.23456058 0.7449363
+~# 6  1.5117566  0.1381453  1.3794290  0.04823193 -1.38317842 0.9400866
+~#        同理心   团队协作      推进者   推进执行      外交者      完善者
+~# 1 -1.54161618 -0.8272103  0.77999622 -1.2022299  1.36307205 -0.06972797
+~# 2 -0.27184653 -0.8958766 -1.17647712 -1.8860527 -0.68595843 -0.25449844
+~# 3  0.86220228 -0.2574232 -0.37159862 -0.8110480 -0.32647518 -1.77303511
+~# 4 -1.14174038 -1.8997321 -0.04368515 -0.2920333  0.03300806 -0.58909126
+~# 5  0.68216919 -0.1601521 -0.28216767 -0.7006367 -0.32647518 -1.36122856
+~# 6  0.04615871 -0.5700419 -1.50439058 -1.5856295  0.27266355 -0.25449844
+~#         稳健   系统思维    销售类     协调者    学习研究   压力承受   压力管理
+~# 1 -0.7284178 -1.2367326 0.9939620  0.7335684 0.007423796  0.0509355  0.1390539
+~# 2 -1.1622319 -1.6524510 0.9045274 -0.2086455 0.478380184 -0.1485758 -0.1858210
+~# 3 -0.4136989  0.8414237 0.6337720 -0.3299389 1.204394699 -0.6477331 -0.7842968
+~# 4 -1.9107648 -1.1008915 1.3512268 -0.3299389 0.386501867  0.4599257  0.5437555
+~# 5  0.2100786  1.5882300 0.5478331 -0.3299389 1.170423810 -0.4385575 -0.5335010
+~# 6 -1.7860093 -1.2078935 0.1806266  0.6404085 0.250711984 -0.7451859 -0.7657627
+~#    严谨务实   严谨细致    研发类    影响力   影响他人 影响型领导   勇于挑战
+~# 1 -1.111057  0.4212716 1.0820946 0.5255039 0.03712338  0.6626826         NA
+~# 2        NA  0.2154187 0.7618544 0.7670476 0.91898650         NA  0.4961906
+~# 3        NA -1.3546554 0.4771535 0.3751249 0.77476178         NA  0.4862606
+~# 4        NA -0.4269126 1.0786620 1.0974942 1.37794044         NA  0.6913991
+~# 5        NA -1.1575682 0.2532107 0.2942233 1.05086308         NA  0.2492661
+~# 6        NA -0.5164582 0.2842030 0.5877923 1.02209118         NA -0.3009188
+~#       责任心     执行者 指挥型领导   主动沟通       专家     自我激励
+~# 1 -0.1658353 -1.4740285   1.376823         NA -0.4399431 -0.081608818
+~# 2 -1.2173690 -1.0981963         NA -1.7813534 -0.2188742 -0.006153348
+~# 3 -0.3361363 -0.2804694         NA  0.4103477  1.2052542  1.043624968
+~# 4 -1.3082653 -1.5888324         NA  0.1815823 -0.6468910 -0.466037485
+~# 5  0.1959685  0.1011365         NA  0.3783634  1.2208185  0.780318353
+~# 6 -2.2258249 -1.8068929         NA -0.4407453 -0.4056452 -1.005923472
+~#     自我觉察   自我认识   自我认知    自我调节  自我意识
+~# 1 -1.3261031 -1.1999237         NA  0.09273086 -1.188141
+~# 2 -0.3966239 -2.0010498 -0.3966239  0.17365201        NA
+~# 3  0.3326889 -0.4908011  0.3326889 -0.49816535        NA
+~# 4 -0.2568907 -1.1427207 -0.2568907  0.67806603        NA
+~# 5  0.1645590 -0.2467789  0.1645590 -0.37635313        NA
+~# 6 -0.1338329 -1.4722813 -0.1338329 -0.49692995        NA</code></pre>
+</div>

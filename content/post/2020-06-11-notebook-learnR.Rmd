@@ -189,11 +189,11 @@ seq.int(from = 1, to = 5, by = 0.8)
 ```
 
 ```{r}
-#
-interaction(data$性别, data$学历)
-#factor; : where f:g is similar to interaction(f, g, sep = ":") when f and g are factors.
-
-data$性别:data$学历
+# #
+# interaction(data$性别, data$学历)
+# #factor; : where f:g is similar to interaction(f, g, sep = ":") when f and g are factors.
+# 
+# data$性别:data$学历
 
 ```
 
@@ -242,6 +242,71 @@ DT[, c(.(y=max(y)), lapply(.SD, min)),
 DT[, grp := .GRP, by=x]                # add a group counter
 X[, DT[.BY, y, on="x"], by=x]          # join within each group
 ```
+
+
+## purrr 
+
+```{r}
+library(purrr)
+safemean <- safely(mean) # 将函数包进safely里，以返回结果和报错
+
+x <- list(c(1,2,3) ,c(8,9,10), "a") 
+
+y <- x %>% map(safemean) # 可对list，通过map来使用此函数
+
+y %>% transpose() # 使用transpose整理结果，将resutl和error分别放道一个list里
+```
+
+与safely相似的两个函数：possibly和quietly
+```{r}
+x %>% map(possibly(mean,otherwise = NA_real_)) # 返回结果，且可通过otherwise指定报错结果返回值
+
+x %>% map(quietly(mean)) # 返回结果、warning、message
+
+```
+
+游走函数
+
+使用`pwalk`来保存图片,pwalk是多个映射参数的游走函数walk的变体
+
+```{r}
+
+# library(ggplot2)
+# mtcars=data.frame(mtcars)
+# plots <- mtcars %>%
+#   split(.$cyl) %>%
+#   map(~ggplot(., aes(mpg, wt)) + geom_point())
+# paths <- stringr::str_c(names(plots), ".pdf")
+# pwalk(list(paths, plots), ggsave, path = 'C:\\Users\\Qiuning\\OneDrive\\blog\\blog\\content\\notebook' )
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

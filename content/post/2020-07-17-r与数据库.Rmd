@@ -1,0 +1,486 @@
+---
+title: "R与数据库"
+author: "秋宁"
+date: '2020-07-17'
+slug: r与数据库
+tags: []
+categories:
+- R
+- 数据库
+---
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo =TRUE, collapse = T, warning = FALSE, message = FALSE, tidy = T,comment='~#',prompt=TRUE,highlight = T)
+
+library(RDDQ)
+library(kableExtra)
+library(formattable)
+library(knitr)
+library(dplyr)
+library(magrittr)
+library(rmarkdown)
+
+```
+
+## Introduction
+
+### 预备数据库相关工具包：  
+
+[DBI](https://cran.r-project.org/web/packages/DBI/vignettes/DBI.html)：提供与多种数据库公共接口，DBI stands for DataBase Interface.  
+
+数据库后端包：依据数据库类型选择相应的后端管理包  
+
+- RMariaDB connects to MySQL and MariaDB  
+
+- [RMySQL](https://cran.r-project.org/web/packages/RMySQL/RMySQL.pdf) connects to MySQL  
+
+- RPostgres connects to Postgres and Redshift.  
+
+- [RSQLite](https://cran.r-project.org/web/packages/RSQLite/vignettes/RSQLite.html) embeds a SQLite database.  
+
+- odbc connects to many commercial databases via the open database connectivity protocol.  
+
+- bigrquery connects to Google’s BigQuery.  
+
+
+智鼎的远程数据库类型为MySQL，因此需要安装RMySQL或RMariaDB后端包；对于个人本地使用的数据库，推荐SQLite（相比MySQL更加轻量）。  
+SQLite的库是基于文件的，不需要通过单独的数据库服务器来运行，它可以进程在使用它的应用中。在R平台上，通过RSQLite & DBI，可实现创建库、读取库、查询、提数等操作。  
+但它只允许一个用户写入与读出，同时也不支持用户权限的管理等，如果有这些需求推荐其他数据库类型。
+
+另外它是完全开源的：  
+SQLite source code is in the public-domain and is free to everyone to use for any purpose.  
+
+> 简单来说，SQLITE功能简约，小型化，追求最大磁盘效率；MYSQL功能全面，综合化，追求最大并发效率。如果只是单机上用的，数据量不是很大，需要方便移植或者需要频繁读/写磁盘文件的话，就用SQLite比较合适；如果是要满足多用户同时访问，或者是网站访问量比较大是使用MYSQL比较合适。
+
+### 其他工具包：  
+
+[dbplyr](https://cran.r-project.org/web/packages/dbplyr/vignettes/dbplyr.html)
+
+熟悉dplyr语法的使用者可以通过dbplyr，以用于data.frame的方式来对数据库进行操作，如使用filter、left_join、mutate等函数。  
+虽然很方便，但还是推荐学一下SQL语句，有些高级的操作无法通过此包来实现。
+
+## DBI初级使用
+
+连接数据库
+
+```{r}
+# setwd('C:\\Users\\Qiuning\\OneDrive\\blog\\blog\\content\\notebook')
+library(DBI)
+
+# con <- dbConnect(RSQLite::SQLite(), dbname = "credentialsforR")
+con <- dbConnect(RSQLite::SQLite(), ":memory:")
+con
+```
+
+查看库中的数据结构
+```{r}
+# The function dbListTables() displays the names tables in the remote database. 
+dbListTables(con) # table name
+
+```
+
+
+写入数据
+```{r}
+dbWriteTable(con, "mtcars", mtcars) # 写入数据
+dbListFields(con, "mtcars") # column names
+
+```
+
+
+从数据库读取数据
+```{r}
+dbReadTable(con, "mtcars") # 读取整个表格
+
+df <- dbGetQuery(con, "SELECT * FROM mtcars WHERE cyl = 4") # 提取数据，使用此方法会一次性提取符合条件的数据，
+# 如果在大型数据库中操作，要注意释放与之相关的资源，数据量过于庞大会使得一次性占用内存过多，因此分批取数更加的科学
+df
+# Behind the scences, dbGetQuery() is a combination of dbSendQuery(), dbFetch() and dbClearResult()
+res <- dbSendQuery(con, "SELECT * FROM mtcars WHERE cyl = 4")
+df <- dbFetch(res)
+dbClearResult(res)
+df
+
+```
+
+分批读取数据（用于大数据集）
+```{r}
+# When working with large datasets it might be smart to fetch the result step by step, not in one big chunk. This can be implemented with a while loop and a dbFetch() call that defines a maximum number of records to retrieve per fetch, here n = 5. There are eleven cars with four cylinders, so we expect two chunks of five rows and one chuck of one row:
+
+res <- dbSendQuery(con, "SELECT * FROM mtcars WHERE cyl = 4")
+while(!dbHasCompleted(res)){
+  chunk <- dbFetch(res, n = 5)
+  print(nrow(chunk))
+}
+```
+
+关闭与数据库的连接
+```{r}
+# Again, call dbClearResult() and disconnect from the connection with dbDisconnect(), when you are done:
+
+dbClearResult(res)
+dbDisconnect(con)
+
+```
+
+## 如何使用RSQLite
+
+建立本地库，将名字传送给`dbConnect()`:
+
+```{r eval=FALSE, include=FALSE}
+
+mydb <- dbConnect(RSQLite::SQLite(), "my-db.sqlite")
+dbDisconnect(mydb)
+unlink("my-db.sqlite")
+
+```
+
+建立临时库, use either "" (for an on-disk database) or ":memory:" or "file::memory:" (for a in-memory database). This database will be automatically deleted when you disconnect from it.
+
+```{r}
+
+mydb <- dbConnect(RSQLite::SQLite(), "")
+dbDisconnect(mydb)
+
+```
+
+存入数据，使用`dbWriteTable()`  
+
+```{r}
+mydb <- dbConnect(RSQLite::SQLite(), "")
+dbWriteTable(mydb, "mtcars", mtcars)
+dbWriteTable(mydb, "iris", iris)
+dbListTables(mydb)
+
+```
+
+查询与提取，使用`dbGetQuery`可以直接执行发送给数据库的查询命令
+```{r}
+dbGetQuery(mydb, 'SELECT * FROM mtcars LIMIT 5') # limit是限制提取多少条数据
+
+```
+
+```{r}
+dbGetQuery(mydb, 'SELECT * FROM iris WHERE "Sepal.Length" < 4.6') # 表中的变量名需要以双引号括起来
+```
+
+
+```{r}
+dbGetQuery(mydb, 'SELECT * FROM iris WHERE "Sepal.Length" < :x', 
+  params = list(x = 4.6)) # 参数化查询
+```
+
+批处理：当查询的数据量很大，不适用于当前内存时，需要使用`dbSendQuery()`, `dbFetch()` and `dbClearResults()` 来分批获得查询到的数据。
+其中，`dbHasCompleted()` 用于查询语句操作是否完成即所有所需数据是否已经全部取回
+
+```{r}
+rs <- dbSendQuery(mydb, 'SELECT * FROM mtcars')
+while (!dbHasCompleted(rs)) { 
+  df <- dbFetch(rs, n = 10)
+  print(nrow(df))
+}
+#> [1] 10
+#> [1] 10
+#> [1] 10
+#> [1] 2
+dbClearResult(rs)
+```
+
+多重参数化查询：使用同一个查询方法，但使用不同的参数来查询数据时，使用`dbBind()`来设置该参数
+
+单一参数：  
+
+```{r}
+rs <- dbSendQuery(mydb, 'SELECT * FROM iris WHERE "Sepal.Length" < :x')
+dbBind(rs, params = list(x = 4.5))
+nrow(dbFetch(rs))
+#> [1] 4
+dbBind(rs, params = list(x = 4))
+nrow(dbFetch(rs))
+#> [1] 0
+dbClearResult(rs)
+```
+
+
+多参数：  
+
+```{r}
+rs <- dbSendQuery(mydb, 'SELECT * FROM iris WHERE "Sepal.Length" = :x') # 发送查询命令，但不执行
+dbBind(rs, params = list(x = seq(4, 4.4, by = 0.1)))
+nrow(dbFetch(rs)) # 使用dbFetch来执行发送的命令
+#> [1] 4
+dbClearResult(rs)
+```
+
+
+<!-- 删除、执行等 -->
+
+<!-- ```{r} -->
+<!-- dbExecute(mydb, 'DELETE FROM iris WHERE "Sepal.Width" < 4') # 删除xx小于4的数据 -->
+<!-- dbGetQuery(mydb, 'SELECT * FROM iris') # 提取此数据查看 -->
+
+<!-- #> [1] 0 -->
+<!-- rs <- dbSendStatement(mydb, 'DELETE FROM iris WHERE "Sepal.Length" < :x') # 发送语句，使用dbBind来批量执行 -->
+<!-- dbBind(rs, params = list(x = 5.5)) -->
+<!-- dbGetRowsAffected(rs) # 查询语句所影响的数据行数 -->
+<!-- #> [1] 4 -->
+<!-- dbClearResult(rs) # 关闭rs链接,释放与之相关的资源 -->
+<!-- ``` -->
+
+<!-- ```{r eval=FALSE, include=FALSE} -->
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbIsValid(dbObj, ...) -->
+
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbBind(res, params, ...) -->
+
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbFetch( -->
+<!--   res, -->
+<!--   n = -1, -->
+<!--   ..., -->
+<!--   row.names = pkgconfig::get_config("RSQLite::row.names.query", FALSE) -->
+<!-- ) -->
+
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbClearResult(res, ...) -->
+
+<!-- ## 查询列信息 -->
+<!-- dbColumnInfo(rs) -->
+
+<!-- ## 查询语句所影响的数据行数 -->
+<!-- dbGetRowsAffected(res, ...) -->
+
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbGetRowCount(res, ...) -->
+
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbHasCompleted(res, ...) -->
+
+<!-- ## S4 method for signature 'SQLiteResult' -->
+<!-- dbGetStatement(res, ...) -->
+<!-- ``` -->
+
+## 使用dbplyr（dplyr语句实现SQL语句）  
+此时dbplyr相当于是dplyr连接数据库的后端  
+
+### 入门
+
+连接数据库  
+
+```{r}
+library(dbplyr)
+
+con <- DBI::dbConnect(RSQLite::SQLite(), dbname = ":memory:") # 与DBI的连接方式相同
+
+```
+
+使用`copy_to`写入数据   
+
+```{r}
+flights <- copy_to(con, nycflights13::flights, "flights",
+  temporary = FALSE, 
+  indexes = list(
+    c("year", "month", "day"), 
+    "carrier", 
+    "tailnum",
+    "dest"
+  )
+)
+```
+
+使用`tbl`取出表格  
+```{r}
+flights_db <- tbl(con, "flights")
+
+```
+
+
+从表格中选择部分列  
+
+```{r}
+flights_db %>% select(year:day, dep_delay, arr_delay)
+
+```
+
+filter  
+
+```{r}
+flights_db %>% filter(dep_delay > 240)
+```
+
+分组求均值  
+
+```{r}
+flights_db %>% 
+  group_by(dest) %>%
+  summarise(delay = mean(dep_time))
+```
+
+以上操作，dplyr并不会真正把数据取回到本地，除非使用`collect()`拉取  
+
+```{r}
+## 打印后，没有具体数据
+tailnum_delay_db <- flights_db %>% 
+  group_by(tailnum) %>%
+  summarise(
+    delay = mean(arr_delay),
+    n = n()
+  ) %>% 
+  arrange(desc(delay)) %>%
+  filter(n > 100)
+
+tailnum_delay_db %>% show_query()
+```
+
+拉取数据  
+
+```{r}
+tailnum_delay <- tailnum_delay_db %>% collect()
+tailnum_delay
+```
+
+### dplyr语句与SQL语句的互翻
+
++ select() and mutate() modify the SELECT clause:
+
+```{r}
+flights %>%
+  select(contains("delay")) %>%
+  show_query() # 通过show_query，可以方便的看到背后执行的SQL语句
+## <SQL>
+## SELECT `dep_delay`, `arr_delay`
+## FROM `nycflights13::flights`
+```
+
+
+```{r}
+flights %>%
+  select(distance, air_time) %>%  
+  mutate(speed = distance / (air_time / 60)) %>%
+  show_query()
+```
+
+
+
++ filter() generates a WHERE clause:
+
+
+```{r}
+flights %>% 
+  filter(month == 1, day == 1) %>%
+  show_query()
+## <SQL>
+## SELECT *
+## FROM `nycflights13::flights`
+## WHERE ((`month` = 1.0) AND (`day` = 1.0))
+```
+
++ arrange() generates an ORDER BY clause:
+
+```{r}
+flights %>% 
+  arrange(carrier, desc(arr_delay)) %>%
+  show_query()
+## <SQL>
+## SELECT *
+## FROM `nycflights13::flights`
+## ORDER BY `carrier`, `arr_delay` DESC
+
+```
+
++ summarise() and group_by() work together to generate a GROUP BY clause:
+
+```{r}
+flights %>%
+  group_by(month, day) %>%
+  summarise(delay = mean(dep_delay)) %>%
+  show_query()
+## <SQL>
+## SELECT `month`, `day`, AVG(`dep_delay`) AS `delay`
+## FROM `nycflights13::flights`
+## GROUP BY `month`, `day`
+```
+
+
+## 实例应用
+
+由于智鼎使用的是MySQL数据库，所以需要安装和加载`RMySQL`包。
+
+连接智鼎测试环境的MySQL远程数据库
+
+```{r echo=TRUE}
+library(RMySQL)
+library(tidyverse)
+con <- DBI::dbConnect(RMySQL::MySQL(),
+                      driver = "MySQLDriver",
+                      dbname='zhiding_test',
+                      # user = rstudioapi::askForPassword("Database user"),
+                      # password = rstudioapi::askForPassword("Database password"),
+                      user = 'blade',
+                      password = '1234',
+                      host = "192.168.1.110",
+                      port = 3306,
+                      DBMSencoding="utf-8")
+```
+
+
+在提取数据之前需先设定数据库的编码格式为`utf8`
+
+```{r}
+rs <- dbSendQuery(con, "SET NAMES utf8")
+dbClearResult(rs) # 在提数完成后，不要忘记关闭此链接
+
+```
+
+使用DBI中的函数+SQL语句取数据  
+
+```{r}
+mapid <- dbGetQuery(con, "SELECT * FROM s_zhiding_tools WHERE toolName LIKE '%MAP%'")
+mapid
+```
+
+
+使用dbplyr方式取相同的数据  
+
+```{r}
+
+tble <- con %>% tbl("s_zhiding_tools") %>% filter(str_detect(toolName, "MAP")) %>% collect() 
+con %>% tbl("s_zhiding_tools") %>% filter(str_detect(toolName, "MAP")) %>%  show_query()
+tble
+```
+
+可以看到，此时取出的数据中文格式还是乱的，可再转一次utf8编码  
+然后数据就可以正常显示了：
+
+```{r}
+# 一个简单的转编码的函数，也可使用enc2utf8()
+enc28 <- function(x){ if(is.character(x)){Encoding(x) <- 'UTF-8'
+  x }else{x}}
+
+tble <- as.data.frame(map(tble,enc28))
+tble
+```
+
+第二个示例，读取398版本的MAP的高阶维度数据
+
+```{r}
+res <- dbSendQuery(con, "SELECT * FROM s_exam_advance_result WHERE tool_id =398 AND moduleType=2")
+chunk <- dbFetch(res, n = 500) %>% map(.,enc28) %>% as.data.frame(.)
+dbClearResult(res) #关闭链接
+head(chunk)
+```
+
+
+```{r}
+chunkx <- chunk[,c(2,6,7)] 
+
+## 剔除存在多条数据的人员的重复数据
+chunkx$id <- paste(chunk$activityPerson_id,chunk$moduleName,sep='-')
+chunkx <- chunkx[!duplicated(chunkx$id),]
+
+## 整理为常见的数据格式，即一行为一个人的数据
+keypersondata <- tidyr::spread(chunkx[,1:3],moduleName,z_mark)
+
+head(keypersondata)
+
+```
